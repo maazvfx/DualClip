@@ -22,9 +22,9 @@
     <!-- DualClip.Tests\ is a separate project; its sources must not be globbed into this one. -->
     <Compile Remove="backup\**;release\**;dist\**;sandbox\**;experiments\**;tests\**;docs\**;DualClip.Tests\**;prototypes\**" />
     <None Remove="backup\**;release\**;dist\**;sandbox\**;experiments\**;tests\**;docs\**;DualClip.Tests\**;prototypes\**" />
-    <Content Include="assets\app.ico" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="assets\app-paused.ico" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="ui\**" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="assets\app.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="assets\app-paused.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="ui\**" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
