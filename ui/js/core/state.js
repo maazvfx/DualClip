@@ -1250,7 +1250,15 @@ window.onWindowShow = function() {
   }
   // Branch B: Ensure clips loaded
   const _loadPromise = loadClipsFromBackend();
-  const _applyRestoreSelection = () => {
+  let _settled = false;
+  const _applyAndReveal = () => {
+    if (_settled) return;
+    _settled = true;
+    try {
+      if (typeof applyFilters === 'function') applyFilters();
+      else if (typeof renderVirtualWindow === 'function') renderVirtualWindow();
+    } catch {}
+
     try {
       const rememberSel = localStorage.getItem('dualclip_remember_selected_clip') !== '0';
       const savedIdStr = rememberSel ? localStorage.getItem('dualclip_remember_selected_clip_id') : null;
@@ -1285,22 +1293,8 @@ window.onWindowShow = function() {
         if (listCont) listCont.scrollTop = 0;
       }
     } catch (_) {}
-  };
 
-  if (_loadPromise && typeof _loadPromise.then === 'function') {
-    _loadPromise.then(() => {
-      _applyRestoreSelection();
-      try { if (typeof syncLivePreview === 'function') syncLivePreview(); } catch (_) {}
-    }).catch(() => {});
-  }
-
-  if (true) {
-    _applyRestoreSelection();
     pendingWindowShowLoad = false;
-    try {
-      if (typeof applyFilters === 'function') applyFilters();
-      else if (typeof renderVirtualWindow === 'function') renderVirtualWindow();
-    } catch {}
     syncPauseStateFromBackend();
     if (typeof syncLivePreview === 'function') syncLivePreview();
     const searchInput = document.getElementById('searchInput');
@@ -1321,8 +1315,18 @@ window.onWindowShow = function() {
     try { window._dcRevealWindow(); } catch {}
     try { if (window.pywebview && window.pywebview.api && window.pywebview.api.window_show_ack) window.pywebview.api.window_show_ack(); else if (window.chrome && window.chrome.webview) window.chrome.webview.postMessage({id:0, method:'window_show_ack', args:[]}); } catch {}
     _needsRefetch = false;
-    return;
+  };
+
+  // Race: DB fetch resolution vs 120ms safety timeout fallback
+  if (_loadPromise && typeof _loadPromise.then === 'function') {
+    _loadPromise.then(() => {
+      _applyAndReveal();
+    }).catch(() => {
+      _applyAndReveal();
+    });
   }
+  setTimeout(_applyAndReveal, 120);
+  return;
   // Refetch needed (extended sleep >5min or external DB change)
   _needsRefetch = false;
   selectedIndex = 0;
