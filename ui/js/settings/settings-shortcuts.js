@@ -11,22 +11,7 @@ const REMOTE_LINKS_DEFAULTS = {
   tip: 'https://dualclip.vercel.app/support'
 };
 
-async function openAboutLink(kind) {
-  const fallback = REMOTE_LINKS_DEFAULTS[kind] || REMOTE_LINKS_DEFAULTS.website;
-  const isDisabled = (v) => typeof v === 'string' && v.trim() === '';
-  const isValid = (v) => typeof v === 'string' && /^https:\/\//i.test(v);
-  let url = fallback;
-  try {
-    const cached = localStorage.getItem('dualclip_remote_links');
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (parsed) {
-        if (isDisabled(parsed[kind])) return; // admin disabled this button
-        if (isValid(parsed[kind])) url = parsed[kind];
-      }
-    }
-  } catch (e) {}
-  // On-click refresh: newest link wins, 3s cap, silent fallback to saved/default.
+async function refreshRemoteLinksCache() {
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, 3000);
@@ -34,16 +19,32 @@ async function openAboutLink(kind) {
     clearTimeout(timer);
     if (res && res.ok) {
       const data = await res.json();
-      try { localStorage.setItem('dualclip_remote_links', JSON.stringify(data)); } catch (e) {}
-      if (data) {
-        if (isDisabled(data[kind])) return; // admin disabled this button
-        if (isValid(data[kind])) url = data[kind];
+      if (data && typeof data === 'object') {
+        try { localStorage.setItem('dualclip_remote_links', JSON.stringify(data)); } catch (e) {}
       }
     }
   } catch (e) {}
+}
+
+function openAboutLink(kind) {
+  const fallback = REMOTE_LINKS_DEFAULTS[kind] || REMOTE_LINKS_DEFAULTS.website;
+  const isValid = (v) => typeof v === 'string' && /^https:\/\//i.test(v);
+  let url = fallback;
+  try {
+    const cached = localStorage.getItem('dualclip_remote_links');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed && isValid(parsed[kind])) {
+        url = parsed[kind];
+      }
+    }
+  } catch (e) {}
+
   if (kind === 'tip') {
     try { localStorage.setItem('dualclip_pending_tip_check', String(Date.now())); } catch (e) {}
   }
+
+  // Instant dispatch to default browser
   if (window.chrome && window.chrome.webview) {
     window.chrome.webview.postMessage({ id: 0, method: 'open_external_url', args: [url] });
   } else if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.open_external_url === 'function') {
@@ -51,6 +52,9 @@ async function openAboutLink(kind) {
   } else {
     window.open(url, '_blank');
   }
+
+  // Refresh remote links cache in background for future clicks (non-blocking)
+  refreshRemoteLinksCache();
 }
 window.openAboutLink = openAboutLink;
 
