@@ -63,3 +63,15 @@ docs/DECISIONS.md
 docs/RULES.md
 docs/CODEMAP.md
 docs/cleanup-plan.md
+## Runtime Configuration & Dumps
+settings.json
+settings.json.bak
+settings.json.tmp
+*.db-journal
+*.dmp
+*.crash
+*.mdmp
+*.run.xml
+.idea/httpRequests/
+packages/
+node_modules/
