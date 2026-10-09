@@ -229,7 +229,7 @@ public static class AppSettings
 
             if (enable)
             {
-                var exePath = Environment.ProcessPath ?? System.Reflection.Assembly.GetExecutingAssembly().Location;
+                var exePath = Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "DualClip.exe");
                 if (!string.IsNullOrEmpty(exePath))
                 {
                     if (exePath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
