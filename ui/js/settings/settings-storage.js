@@ -395,9 +395,9 @@ async function openExportClipsModal() {
 
   const listEl = document.getElementById('exportCollectionsList');
   if (listEl) {
-    listEl.innerHTML = '';
+    const SYSTEM_RESERVED = new Set(['all', 'pins', 'most_used', 'favorites', 'all_total', 'all_unorganized', 'transcriptions', 'voice']);
     const cols = (typeof customCollections !== 'undefined' && Array.isArray(customCollections))
-      ? customCollections.filter(c => c && c.id && c.id !== 'all' && c.id !== 'pins' && c.id !== 'most_used')
+      ? customCollections.filter(c => c && c.id && !SYSTEM_RESERVED.has(String(c.id).toLowerCase()))
       : [];
     if (cols.length === 0) {
       if (colsRow) colsRow.style.display = 'none';

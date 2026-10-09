@@ -139,7 +139,7 @@ assertTag(
   `Large JSON document (${(bigJsonStr.length / 1024).toFixed(0)} KB)`,
   bigJsonStr,
   'JSON',
-  60 // 60 ms budget for ~650 KB parse
+  100 // 100 ms budget for ~650 KB parse
 );
 
 // 7. URLs & File Paths

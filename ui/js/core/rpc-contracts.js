@@ -21,6 +21,7 @@
     set_pinned: { args: ['pinned'] },
     set_modal_open: { args: ['open'] },
     get_pinned: { args: [] },
+    open_external_url: { args: ['url'] },
     set_show_taskbar: { args: ['show'] },
     ui_ready: { args: [] },
     write_debug_log: { args: ['message'] },

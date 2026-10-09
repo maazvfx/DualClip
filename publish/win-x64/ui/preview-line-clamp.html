@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Line Clamp 2 vs 3 Preview</title>
+<link rel="stylesheet" href="css/base-variables.css">
+<link rel="stylesheet" href="css/clip-list.css">
+<style>
+  body { padding: 24px; max-width: 900px; margin: 0 auto; background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; }
+  h1 { font-size: 14px; margin: 0 0 4px; }
+  p.sub { font-size: 12px; color: var(--text-muted); margin: 0 0 16px; }
+  .cols { display: flex; gap: 16px; }
+  .col { flex: 1; min-width: 0; }
+  .col h2 { font-size: 12px; color: var(--text-muted); margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .col .clip-row { border: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle); margin-bottom: 8px; }
+  .verdict { margin-top: 16px; font-size: 12px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+<h1>Clip lines: 2 vs 3</h1>
+<p class="sub">Same clips, same styles as the app. Short clips render identically; only 3+ line clips differ.</p>
+<div class="cols">
+  <div class="col" data-line-display="2">
+    <h2>Two lines</h2>
+    <div class="clip-row"><div class="row-text">Buy milk after work</div></div>
+    <div class="clip-row"><div class="row-text">First line of the note
+Second line of the note</div></div>
+    <div class="clip-row"><div class="row-text">Line one of a long clip
+Line two keeps going here
+Line three adds more detail
+Line four finishes it off</div></div>
+  </div>
+  <div class="col" data-line-display="3">
+    <h2>Three lines</h2>
+    <div class="clip-row"><div class="row-text">Buy milk after work</div></div>
+    <div class="clip-row"><div class="row-text">First line of the note
+Second line of the note</div></div>
+    <div class="clip-row"><div class="row-text">Line one of a long clip
+Line two keeps going here
+Line three adds more detail
+Line four finishes it off</div></div>
+  </div>
+</div>
+<p class="verdict">Rows 1 and 2 are identical in both columns. Row 3 shows 2 lines (+ ellipsis) on the left, 3 lines on the right.</p>
+</body>
+</html>

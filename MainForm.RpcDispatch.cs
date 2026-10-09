@@ -91,6 +91,21 @@ public partial class MainForm
                     SendRpcResponse(rpcId, new { ok = true });
                     break;
 
+                case "open_external_url":
+                    if (args.ValueKind == JsonValueKind.Array && args.GetArrayLength() > 0 && args[0].ValueKind == JsonValueKind.String)
+                    {
+                        var rawUrl = args[0].GetString();
+                        if (!string.IsNullOrWhiteSpace(rawUrl) && Uri.TryCreate(rawUrl, UriKind.Absolute, out var targetUri))
+                        {
+                            if (targetUri.Scheme == Uri.UriSchemeHttp || targetUri.Scheme == Uri.UriSchemeHttps)
+                            {
+                                try { Process.Start(new ProcessStartInfo(targetUri.AbsoluteUri) { UseShellExecute = true }); } catch { }
+                            }
+                        }
+                    }
+                    SendRpcResponse(rpcId, new { ok = true });
+                    break;
+
                 case "set_pinned":
                     if (args.ValueKind == JsonValueKind.Array && args.GetArrayLength() > 0)
                     {

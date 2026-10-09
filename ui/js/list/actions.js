@@ -860,21 +860,24 @@ async function showClearModal(title, message, confirmText, defaultDeletePinned =
     list.innerHTML = '';
     const available = [];
     const seen = new Set();
+    const SYSTEM_RESERVED = new Set(['all', 'pins', 'most_used', 'favorites', 'all_total', 'all_unorganized', 'transcriptions', 'voice']);
+    const retired = new Set(['work', 'personal', 'code', 'templates']);
     if (Array.isArray(customCollections)) {
       customCollections.forEach(c => {
-        if (c && c.id && c.id !== 'all' && c.id !== 'pins' && c.id !== 'most_used' && !seen.has(c.id)) {
-          available.push(c);
-          seen.add(c.id);
+        if (c && c.id) {
+          const low = String(c.id).toLowerCase();
+          if (!SYSTEM_RESERVED.has(low) && !retired.has(c.id) && !seen.has(c.id)) {
+            available.push(c);
+            seen.add(c.id);
+          }
         }
       });
     }
     if (countsMap && typeof countsMap === 'object') {
-      const reserved = ['all', 'pins', 'most_used'];
-      const retired = ['work', 'personal', 'code', 'templates'];
       Object.keys(countsMap).forEach(cid => {
         if (!cid || seen.has(cid)) return;
         const low = String(cid).toLowerCase();
-        if (reserved.includes(low) || retired.includes(cid)) return;
+        if (SYSTEM_RESERVED.has(low) || retired.has(cid)) return;
         available.push({ id: cid, name: cid });
         seen.add(cid);
       });

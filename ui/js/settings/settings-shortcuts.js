@@ -44,7 +44,13 @@ async function openAboutLink(kind) {
   if (kind === 'tip') {
     try { localStorage.setItem('dualclip_pending_tip_check', String(Date.now())); } catch (e) {}
   }
-  window.open(url, '_blank');
+  if (window.chrome && window.chrome.webview) {
+    window.chrome.webview.postMessage({ id: 0, method: 'open_external_url', args: [url] });
+  } else if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.open_external_url === 'function') {
+    window.pywebview.api.open_external_url(url);
+  } else {
+    window.open(url, '_blank');
+  }
 }
 window.openAboutLink = openAboutLink;
 
