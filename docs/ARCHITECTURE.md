@@ -298,9 +298,7 @@ skips the Inno Setup step if `ISCC` is not on PATH.
 
 ---
 
-## 9. Known Rough Edges & Audit Findings
-
-Verified against source during the comprehensive codebase audit in `docs/audits/`.
+## 9. Known Rough Edges & Findings
 
 1. **Split data roots.** The database lives under `%LOCALAPPDATA%` while settings and images live
    under `%APPDATA%`, with no migration between them.
@@ -317,7 +315,6 @@ Verified against source during the comprehensive codebase audit in `docs/audits/
    - `Services/DatabaseService.cs`: `ClearAll()` and `GetClipsForCollectionExport()` (pruned).
    - `Services/WindowPlacement.cs`: `TopLeft()` (pruned).
    - `ui/js/core/state.js`: Dead unreachable calculation block in `formatClipForUI` (pruned).
-   - Full reports for each major component are cataloged in `docs/audits/`.
 
 > **Convention worth preserving:** image `content_hash` values are stored as **uppercase** hex.
 > The column has no `COLLATE NOCASE`, so the dedupe comparison (`WHERE content_hash = $h`) is
@@ -341,34 +338,8 @@ Verified against source during the comprehensive codebase audit in `docs/audits/
 
 ---
 
-## 10. Audit Reports Index
+## 10. Contributing & Architecture Standards
 
-Detailed architectural inspections across all critical subsystems:
-- [Modularization Assessment](docs/audits/modularization-assessment.md)
-- [DatabaseService Audit](docs/audits/database-service-audit.md)
-- [ClipboardListener Audit](docs/audits/clipboard-listener-audit.md)
-- [RpcDispatch Audit](docs/audits/rpc-dispatch-audit.md)
-- [MainForm Architecture Audit](docs/audits/main-form-audit.md)
-- [Settings & Window Placement Audit](docs/audits/settings-window-placement-audit.md)
-- [List Actions Audit](docs/audits/list-actions-audit.md)
-- [Filters & Collections Audit](docs/audits/filters-collections-audit.md)
-- [Filters & Search Audit](docs/audits/filters-search-audit.md)
-- [State & Bridge Audit](docs/audits/state-bridge-audit.md)
-- [Keyboard Engine Audit](docs/audits/keyboard-audit.md)
-- [Modals Overlay Audit](docs/audits/modals-audit.md)
-- [Preview Lightbox Audit](docs/audits/preview-lightbox-audit.md)
-- [Settings Core Audit](docs/audits/settings-core-audit.md)
-- [Settings Appearance Audit](docs/audits/settings-appearance-audit.md)
-- [Quick View Menu Audit](docs/audits/quick-view-menu-audit.md)
-- [Clip List CSS Audit](docs/audits/clip-list-css-audit.md)
-- [Overlays & Modals CSS Audit](docs/audits/overlays-modals-css-audit.md)
-- [Settings CSS Audit](docs/audits/settings-css-audit.md)
-
----
-
-## 11. Contributing
-
-- `AGENTS.md` holds the binding workspace rules. Read it before editing code.
 - Never run the app as part of a build or test loop — kill any running `DualClip.exe` first.
 - Any change to the RPC surface must update **both** `MainForm.cs` and
   `ui/js/core/rpc-contracts.js`.
