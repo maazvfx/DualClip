@@ -40,3 +40,13 @@ ui/preview-*.html
 .agent/
 .claude/
 .cursor/
+## Certificates, Keys & Secrets
+*.pfx
+*.pem
+*.key
+*.p12
+*.jks
+*.cer
+*.crt
+*.env
+*.env.*
