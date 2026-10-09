@@ -131,7 +131,8 @@ function changeClipDetailsSetting(value, isProgrammatic = false) {
 function changeQuickViewLayoutPreset(value, hydrateOnly = false, animate = false) {
   if (!value) return;
   // Legacy Large value migrates to Standard (Large mode removed).
-  if (value === 'expanded') value = 'standard';
+  let previousPreset = 'standard';
+  try { previousPreset = localStorage.getItem('dualclip_layout_preset') || 'standard'; } catch (_) {}
   try { localStorage.setItem('dualclip_layout_preset', value); } catch (e) {}
   if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.set_layout_preset === 'function') {
     try { window.pywebview.api.set_layout_preset(value); } catch (_) {}
@@ -198,13 +199,19 @@ function changeQuickViewLayoutPreset(value, hydrateOnly = false, animate = false
   // Clip details: Compact is ALWAYS 'hidden' to ensure zero layout shift.
   // Standard mode restores the user's saved preference for standard mode.
   if (value === 'compact') {
-    let currentDetails = 'app-time';
-    try { currentDetails = localStorage.getItem('dualclip_clip_details') || 'app-time'; } catch (_) {}
-    try { localStorage.setItem('dualclip_standard_clip_details', currentDetails); } catch (_) {}
+    if (previousPreset !== 'compact') {
+      let currentDetails = 'hidden';
+      try { currentDetails = localStorage.getItem('dualclip_clip_details') || 'hidden'; } catch (_) {}
+      try { localStorage.setItem('dualclip_standard_clip_details', currentDetails); } catch (_) {}
+    }
     try { if (typeof changeClipDetailsSetting === 'function') changeClipDetailsSetting('hidden', true); } catch (e4) {}
   } else {
-    let savedStandardDetails = 'app-time';
-    try { savedStandardDetails = localStorage.getItem('dualclip_standard_clip_details') || localStorage.getItem('dualclip_clip_details') || 'app-time'; } catch (_) {}
+    let savedStandardDetails = 'hidden';
+    try {
+      savedStandardDetails = localStorage.getItem('dualclip_standard_clip_details')
+        || localStorage.getItem('dualclip_clip_details')
+        || 'hidden';
+    } catch (_) {}
     try { if (typeof changeClipDetailsSetting === 'function') changeClipDetailsSetting(savedStandardDetails, true); } catch (e4) {}
   }
   let savedThumbSetting = 'sm';

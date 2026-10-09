@@ -320,6 +320,26 @@ const metaPerMode = () => check(
     // Switch back to standard -> must restore 'app-time'
     changeQuickViewLayoutPreset('standard', false, false);
     assertEq(htmlAttrs['data-clip-details'], 'app-time', 'standard restores saved app-time');
+
+    // User preference for 'hidden' survives standard -> compact -> standard switch
+    reset();
+    storage.set('dualclip_clip_details', 'hidden');
+    storage.set('dualclip_standard_clip_details', 'hidden');
+    changeQuickViewLayoutPreset('compact', false, false);
+    assertEq(htmlAttrs['data-clip-details'], 'hidden', 'compact forces clip details hidden');
+    changeQuickViewLayoutPreset('standard', false, false);
+    assertEq(htmlAttrs['data-clip-details'], 'hidden', 'standard restores saved hidden preference');
+
+    // User selects 'hidden' via changeUnifiedClipDetails in standard mode
+    reset();
+    changeUnifiedClipDetails('hidden');
+    assertEq(storage.get('dualclip_clip_details'), 'hidden', 'clip details storage updated to hidden');
+    assertEq(storage.get('dualclip_standard_clip_details'), 'hidden', 'standard clip details storage updated to hidden');
+    changeQuickViewLayoutPreset('compact', false, false);
+    assertEq(htmlAttrs['data-clip-details'], 'hidden', 'compact forces clip details hidden');
+    changeQuickViewLayoutPreset('standard', false, false);
+    assertEq(htmlAttrs['data-clip-details'], 'hidden', 'standard restores hidden after changeUnifiedClipDetails');
+
     assertEq(storage.get('dualclip_thumb_size'), 'sm', 'thumb size default');
     // Explicit check: user custom thumb sizes survive mode switching
     // 'lg' was removed from the product; it now migrates to 'sm'.

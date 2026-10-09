@@ -106,15 +106,17 @@ function applyWindowSizePreset(preset, animate = false) {
 
   let w = 970, h = 730;
   if (canonicalVal === 'compact') {
+    w = 360; h = 260;
     const savedW = parseInt(localStorage.getItem('dualclip_compact_width'), 10);
     const savedH = parseInt(localStorage.getItem('dualclip_compact_height'), 10);
-    w = (savedW >= 300) ? savedW : 360;
-    h = (savedH >= 240) ? savedH : 260;
-  } else if (canonicalVal === 'default') {
+    if (savedW >= 300) w = savedW;
+    if (savedH >= 240) h = savedH;
+  } else if (canonicalVal === 'default') { w = 970; h = 730; }
+  if (canonicalVal === 'default') {
     const savedW = parseInt(localStorage.getItem('dualclip_standard_width'), 10);
     const savedH = parseInt(localStorage.getItem('dualclip_standard_height'), 10);
-    w = (savedW >= 300) ? savedW : 970;
-    h = (savedH >= 240) ? savedH : 730;
+    if (savedW >= 300) w = savedW;
+    if (savedH >= 240) h = savedH;
   }
   else if (['medium', 'tall', 'wide', 'ultrawide'].includes(canonicalVal)) { canonicalVal = 'default'; }
   
@@ -718,8 +720,9 @@ function changeUnifiedClipDetails(mode) {
   };
   const m = map[mode] || map.default;
   if (typeof changeClipDetailsSetting === 'function') {
-    try { changeClipDetailsSetting(m.details, true); } catch (e) {}
+    try { changeClipDetailsSetting(m.details, false); } catch (e) {}
   }
+  try { localStorage.setItem('dualclip_standard_clip_details', m.details); } catch (e) {}
   if (m.source && typeof changeAppSourceDisplay === 'function') {
     try { changeAppSourceDisplay(m.source, false, true); } catch (e) {}
   }
