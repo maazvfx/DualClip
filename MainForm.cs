@@ -413,16 +413,22 @@ public partial class MainForm : Form
         if (_transientSize) return;
         try
         {
-            if (Width >= MIN_WINDOW_WIDTH && Height >= MIN_WINDOW_HEIGHT && Width <= 1600 && Height <= 1200)
+            if (Width >= MIN_WINDOW_WIDTH && Height >= MIN_WINDOW_HEIGHT)
             {
                 var s = AppSettings.Load(forceReload: true);
-                if (s.RememberWindowSize)
+                bool isCompact = string.Equals(s.LayoutPreset, "compact", StringComparison.OrdinalIgnoreCase);
+                if (isCompact)
                 {
+                    s.CompactWidth = Width;
+                    s.CompactHeight = Height;
+                }
+                else
+                {
+                    s.StandardWidth = Width;
+                    s.StandardHeight = Height;
                     s.WindowWidth = Width;
                     s.WindowHeight = Height;
                 }
-                // The mirror tracks the last real size regardless of RememberWindowSize:
-                // it is the "reopen at what I had" authority when Remember is OFF.
                 s.LastWindowWidth = Width;
                 s.LastWindowHeight = Height;
                 AppSettings.Save(s);
@@ -539,7 +545,9 @@ public partial class MainForm : Form
         // frontend) before its first paint — no reveal-then-resize race.
         var startupArea = Screen.PrimaryScreen?.WorkingArea ?? new Rectangle(0, 0, 1920, 1080);
         var (startW, startH) = WindowSizePolicy.Resolve(
-            settings.RememberWindowSize, settings.WindowWidth, settings.WindowHeight,
+            settings.LayoutPreset,
+            settings.StandardWidth, settings.StandardHeight,
+            settings.CompactWidth, settings.CompactHeight,
             settings.LastWindowWidth, settings.LastWindowHeight,
             startupArea, MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT);
         Width = startW;
@@ -1042,7 +1050,9 @@ public partial class MainForm : Form
             // the show-then-shrink flicker: the OS window is composited at the correct bounds
             // on its very first frame, with no onWindowShow round-trip and no morph.
             var (showW, showH) = WindowSizePolicy.Resolve(
-                settings.RememberWindowSize, settings.WindowWidth, settings.WindowHeight,
+                settings.LayoutPreset,
+                settings.StandardWidth, settings.StandardHeight,
+                settings.CompactWidth, settings.CompactHeight,
                 settings.LastWindowWidth, settings.LastWindowHeight,
                 screen, MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT);
             if (Width != showW || Height != showH)
@@ -1278,10 +1288,18 @@ public partial class MainForm : Form
                     // HideWindow also persists size. While Settings is open the window carries a
                     // transient size, so persisting it here would leak the Settings size into the
                     // next summon regardless of how the user left the view.
-                    if (!wasTransient && sw >= MIN_WINDOW_WIDTH && sh >= MIN_WINDOW_HEIGHT && sw <= 1600 && sh <= 1200)
+                    if (!wasTransient && sw >= MIN_WINDOW_WIDTH && sh >= MIN_WINDOW_HEIGHT)
                     {
-                        if (cur.RememberWindowSize)
+                        bool isCompact = string.Equals(cur.LayoutPreset, "compact", StringComparison.OrdinalIgnoreCase);
+                        if (isCompact)
                         {
+                            cur.CompactWidth = sw;
+                            cur.CompactHeight = sh;
+                        }
+                        else
+                        {
+                            cur.StandardWidth = sw;
+                            cur.StandardHeight = sh;
                             cur.WindowWidth = sw;
                             cur.WindowHeight = sh;
                         }

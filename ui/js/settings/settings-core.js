@@ -363,9 +363,8 @@ function syncSettingsUiFromStorage() {
     if (savedLayout === 'compact') {
       try { if (typeof switchDensityPreview === 'function') switchDensityPreview('dense'); } catch (e) {}
       try {
-        let rememberSize = false;
-        try { rememberSize = localStorage.getItem('dualclip_remember_window_size') === '1'; } catch (_) {}
-        if (!rememberSize) {
+        const hasCustomCompact = localStorage.getItem('dualclip_compact_width');
+        if (!hasCustomCompact) {
           if (typeof applyWindowSizePreset === 'function') applyWindowSizePreset('compact');
           else if (typeof window.applyWindowSizePreset === 'function') window.applyWindowSizePreset('compact');
         }

@@ -61,16 +61,41 @@ public static class WindowSizePolicy
     }
 
     /// <summary>
+    /// Resolves the bounds a summon should restore, aware of the active layout preset.
+    /// Pure: no WinForms, no side effects.
+    /// </summary>
+    public static (int Width, int Height) Resolve(
+        string? layoutPreset,
+        int standardWidth,
+        int standardHeight,
+        int compactWidth,
+        int compactHeight,
+        int lastWindowWidth,
+        int lastWindowHeight,
+        Rectangle workingArea,
+        int minWidth,
+        int minHeight)
+    {
+        bool isCompact = string.Equals(layoutPreset, "compact", StringComparison.OrdinalIgnoreCase);
+        int w, h;
+        if (isCompact)
+        {
+            w = compactWidth >= minWidth ? compactWidth : (lastWindowWidth >= minWidth && lastWindowWidth <= CompactWidth * 2 ? lastWindowWidth : CompactWidth);
+            h = compactHeight >= minHeight ? compactHeight : (lastWindowHeight >= minHeight && lastWindowHeight <= CompactHeight * 2 ? lastWindowHeight : CompactHeight);
+        }
+        else
+        {
+            w = standardWidth >= minWidth ? standardWidth : (lastWindowWidth >= minWidth ? lastWindowWidth : StandardWidth);
+            h = standardHeight >= minHeight ? standardHeight : (lastWindowHeight >= minHeight ? lastWindowHeight : StandardHeight);
+        }
+
+        var clamped = WindowPlacement.ClampSize(new Size(w, h), workingArea, minWidth, minHeight);
+        return (clamped.Width, clamped.Height);
+    }
+
+    /// <summary>
     /// Resolves the bounds a summon should restore. Pure: no WinForms, no side effects.
     /// </summary>
-    /// <param name="rememberWindowSize">The RememberWindowSize setting.</param>
-    /// <param name="rememberedWidth">Persisted WindowWidth (honoured only when rememberWindowSize).</param>
-    /// <param name="rememberedHeight">Persisted WindowHeight (honoured only when rememberWindowSize).</param>
-    /// <param name="lastWindowWidth">Frontend mirror of the last applied size; 0 = unknown.</param>
-    /// <param name="lastWindowHeight">Frontend mirror of the last applied size; 0 = unknown.</param>
-    /// <param name="workingArea">Working area of the display the window will appear on.</param>
-    /// <param name="minWidth">App-wide minimum window width.</param>
-    /// <param name="minHeight">App-wide minimum window height.</param>
     public static (int Width, int Height) Resolve(
         bool rememberWindowSize,
         int rememberedWidth,
@@ -93,6 +118,11 @@ public static class WindowSizePolicy
         {
             w = lastWindowWidth;
             h = lastWindowHeight;
+        }
+        else if (rememberedWidth >= minWidth && rememberedHeight >= minHeight)
+        {
+            w = rememberedWidth;
+            h = rememberedHeight;
         }
 
         var clamped = WindowPlacement.ClampSize(new Size(w, h), workingArea, minWidth, minHeight);

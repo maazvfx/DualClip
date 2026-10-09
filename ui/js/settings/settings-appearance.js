@@ -105,8 +105,17 @@ function applyWindowSizePreset(preset, animate = false) {
   else if (preset === 'expanded' || preset === 'large') canonicalVal = 'default';
 
   let w = 970, h = 730;
-  if (canonicalVal === 'compact') { w = 360; h = 260; }
-  else if (canonicalVal === 'default') { w = 970; h = 730; }
+  if (canonicalVal === 'compact') {
+    const savedW = parseInt(localStorage.getItem('dualclip_compact_width'), 10);
+    const savedH = parseInt(localStorage.getItem('dualclip_compact_height'), 10);
+    w = (savedW >= 300) ? savedW : 360;
+    h = (savedH >= 240) ? savedH : 260;
+  } else if (canonicalVal === 'default') {
+    const savedW = parseInt(localStorage.getItem('dualclip_standard_width'), 10);
+    const savedH = parseInt(localStorage.getItem('dualclip_standard_height'), 10);
+    w = (savedW >= 300) ? savedW : 970;
+    h = (savedH >= 240) ? savedH : 730;
+  }
   else if (['medium', 'tall', 'wide', 'ultrawide'].includes(canonicalVal)) { canonicalVal = 'default'; }
   
   currentBaseWidth = w;
@@ -185,6 +194,18 @@ function resetWindowSizeCurrentMode() {
       showToast('Settings already uses the default window size');
     }
     return;
+  }
+
+  if (isCompact) {
+    try {
+      localStorage.removeItem('dualclip_compact_width');
+      localStorage.removeItem('dualclip_compact_height');
+    } catch (_) {}
+  } else {
+    try {
+      localStorage.removeItem('dualclip_standard_width');
+      localStorage.removeItem('dualclip_standard_height');
+    } catch (_) {}
   }
 
   if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.reset_window_size === 'function') {

@@ -133,6 +133,9 @@ function changeQuickViewLayoutPreset(value, hydrateOnly = false, animate = false
   // Legacy Large value migrates to Standard (Large mode removed).
   if (value === 'expanded') value = 'standard';
   try { localStorage.setItem('dualclip_layout_preset', value); } catch (e) {}
+  if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.set_layout_preset === 'function') {
+    try { window.pywebview.api.set_layout_preset(value); } catch (_) {}
+  }
   document.documentElement.setAttribute('data-layout-preset', value);
   // View mode affects History only — never body, so Settings stays untouched.
   const mv = document.getElementById('mainView');
@@ -197,9 +200,7 @@ function changeQuickViewLayoutPreset(value, hydrateOnly = false, animate = false
   if (value === 'compact') {
     let currentDetails = 'app-time';
     try { currentDetails = localStorage.getItem('dualclip_clip_details') || 'app-time'; } catch (_) {}
-    if (currentDetails !== 'hidden') {
-      try { localStorage.setItem('dualclip_standard_clip_details', currentDetails); } catch (_) {}
-    }
+    try { localStorage.setItem('dualclip_standard_clip_details', currentDetails); } catch (_) {}
     try { if (typeof changeClipDetailsSetting === 'function') changeClipDetailsSetting('hidden', true); } catch (e4) {}
   } else {
     let savedStandardDetails = 'app-time';

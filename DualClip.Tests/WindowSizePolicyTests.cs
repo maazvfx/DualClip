@@ -143,4 +143,30 @@ public class WindowSizePolicyTests
         Assert.Equal((970, 730), WindowSizePolicy.ResetSizeFor(null));
         Assert.Equal((970, 730), WindowSizePolicy.ResetSizeFor(""));
     }
+
+    [Fact]
+    [Trait("Category", "Core")]
+    public void LayoutAware_CompactWithCustomDimensions_RestoresCustomDimensions()
+    {
+        var (w, h) = WindowSizePolicy.Resolve(
+            layoutPreset: "compact",
+            standardWidth: 1100, standardHeight: 800,
+            compactWidth: 450, compactHeight: 320,
+            lastWindowWidth: 450, lastWindowHeight: 320,
+            workingArea: FullHd, minWidth: MinW, minHeight: MinH);
+        Assert.Equal((450, 320), (w, h));
+    }
+
+    [Fact]
+    [Trait("Category", "Core")]
+    public void LayoutAware_StandardWithCustomDimensions_RestoresCustomDimensions()
+    {
+        var (w, h) = WindowSizePolicy.Resolve(
+            layoutPreset: "standard",
+            standardWidth: 1150, standardHeight: 820,
+            compactWidth: 400, compactHeight: 280,
+            lastWindowWidth: 1150, lastWindowHeight: 820,
+            workingArea: FullHd, minWidth: MinW, minHeight: MinH);
+        Assert.Equal((1150, 820), (w, h));
+    }
 }

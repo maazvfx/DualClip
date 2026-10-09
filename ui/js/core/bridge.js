@@ -142,6 +142,8 @@
       reset_window_size: (layout) => callHost('reset_window_size', [layout || '']),
       set_clip_details: (details) => callHost('set_clip_details', [details || 'hidden']),
       get_clip_details: () => callHost('get_clip_details', []),
+      set_layout_preset: (preset) => callHost('set_layout_preset', [preset || 'standard']),
+      get_layout_preset: () => callHost('get_layout_preset', []),
       set_show_taskbar: (show) => callHost('set_show_taskbar', [show]),
       set_autostart: (enable) => callHost('set_autostart', [enable]),
       set_start_hidden: (enable) => callHost('set_start_hidden', [enable]),

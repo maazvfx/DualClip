@@ -146,6 +146,8 @@
     get_thumb_size: { args: [] },
     set_clip_details: { args: ['details'] },
     get_clip_details: { args: [] },
+    set_layout_preset: { args: ['preset'] },
+    get_layout_preset: { args: [] },
   };
 
   /**

@@ -1253,11 +1253,24 @@ function quickDeleteClip(event, idx) {
     });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', attach);
-  } else {
-    attach();
-  }
+  let resizeDebounceTimer = null;
+  window.addEventListener('resize', function() {
+    if (document.body && document.body.classList.contains('in-settings')) return;
+    clearTimeout(resizeDebounceTimer);
+    resizeDebounceTimer = setTimeout(function() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      if (w < 300 || h < 240) return;
+      const layout = document.documentElement.getAttribute('data-layout-preset') || localStorage.getItem('dualclip_layout_preset') || 'standard';
+      if (layout === 'compact') {
+        localStorage.setItem('dualclip_compact_width', String(w));
+        localStorage.setItem('dualclip_compact_height', String(h));
+      } else {
+        localStorage.setItem('dualclip_standard_width', String(w));
+        localStorage.setItem('dualclip_standard_height', String(h));
+      }
+    }, 150);
+  });
 })();
 
 function executePasteDelete(clip) {

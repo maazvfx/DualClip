@@ -34,13 +34,15 @@ public class AppSettingsData
     public string WindowPositionMode { get; set; } = "near";
     public string TrayPositionMode { get; set; } = "center";
     public bool RememberWindowSize { get; set; } = false;
+    public string LayoutPreset { get; set; } = "standard";
     public int WindowWidth { get; set; } = 970;
     public int WindowHeight { get; set; } = 730;
+    public int StandardWidth { get; set; } = 970;
+    public int StandardHeight { get; set; } = 730;
+    public int CompactWidth { get; set; } = 360;
+    public int CompactHeight { get; set; } = 260;
     // Mirror of the last size the frontend applied through a persisting resize
     // (set_window_size persist=true, a persisting bounds morph, or a drag-resize).
-    // NOT a mode/preset mirror (TASK-002): JS stays the sole owner of preset
-    // semantics; C# merely replays these bounds at show time so a Compact summon
-    // appears at Compact dimensions on the very first frame. 0 = unknown.
     public int LastWindowWidth { get; set; } = 0;
     public int LastWindowHeight { get; set; } = 0;
     public int? WindowX { get; set; } = null;

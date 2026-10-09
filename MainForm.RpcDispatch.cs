@@ -1477,14 +1477,19 @@ public partial class MainForm
                         if (persist)
                         {
                             var s = AppSettings.Load();
-                            if (s.RememberWindowSize)
+                            bool isCompact = string.Equals(s.LayoutPreset, "compact", StringComparison.OrdinalIgnoreCase);
+                            if (isCompact)
                             {
+                                s.CompactWidth = Size.Width;
+                                s.CompactHeight = Size.Height;
+                            }
+                            else
+                            {
+                                s.StandardWidth = Size.Width;
+                                s.StandardHeight = Size.Height;
                                 s.WindowWidth = Size.Width;
                                 s.WindowHeight = Size.Height;
                             }
-                            // Mirror regardless of RememberWindowSize: this is the frontend's
-                            // last applied preset size — the show-time replay authority while
-                            // Remember is OFF.
                             s.LastWindowWidth = Size.Width;
                             s.LastWindowHeight = Size.Height;
                             AppSettings.Save(s);
@@ -1493,6 +1498,23 @@ public partial class MainForm
                         break;
                     }
                     SendRpcResponse(rpcId, new { ok = false });
+                    break;
+
+                case "set_layout_preset":
+                    if (args.ValueKind == JsonValueKind.Array && args.GetArrayLength() > 0 && args[0].ValueKind == JsonValueKind.String)
+                    {
+                        string preset = args[0].GetString()?.ToLowerInvariant() ?? "standard";
+                        var s = AppSettings.Load();
+                        s.LayoutPreset = preset == "compact" ? "compact" : "standard";
+                        AppSettings.Save(s);
+                        SendRpcResponse(rpcId, new { ok = true, preset = s.LayoutPreset });
+                        break;
+                    }
+                    SendRpcResponse(rpcId, new { ok = false });
+                    break;
+
+                case "get_layout_preset":
+                    SendRpcResponse(rpcId, new { ok = true, preset = AppSettings.Load().LayoutPreset });
                     break;
 
                 case "reset_window_size":
@@ -1534,13 +1556,18 @@ public partial class MainForm
                             _suppressResizeSave = false;
                         }
                     }
-                    // A reset is an explicit user choice: persist it like any other
-                    // persisting resize — mirror always (next summon replay authority),
-                    // remembered size only when RememberWindowSize is ON.
-                    if (sReset.RememberWindowSize)
+                    bool resetIsCompact = string.Equals(resetLayout ?? sReset.LayoutPreset, "compact", StringComparison.OrdinalIgnoreCase);
+                    if (resetIsCompact)
                     {
-                        sReset.WindowWidth = Size.Width;
-                        sReset.WindowHeight = Size.Height;
+                        sReset.CompactWidth = WindowSizePolicy.CompactWidth;
+                        sReset.CompactHeight = WindowSizePolicy.CompactHeight;
+                    }
+                    else
+                    {
+                        sReset.StandardWidth = WindowSizePolicy.StandardWidth;
+                        sReset.StandardHeight = WindowSizePolicy.StandardHeight;
+                        sReset.WindowWidth = WindowSizePolicy.StandardWidth;
+                        sReset.WindowHeight = WindowSizePolicy.StandardHeight;
                     }
                     sReset.LastWindowWidth = Size.Width;
                     sReset.LastWindowHeight = Size.Height;
