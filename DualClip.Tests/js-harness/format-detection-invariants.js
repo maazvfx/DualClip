@@ -151,7 +151,7 @@ assertTag(
 
 assertTag(
   'Windows absolute file path',
-  'C:\\Users\\Maaz\\Documents\\DualClip\\ui\\index.html',
+  'C:\\Users\\Username\\Documents\\DualClip\\ui\\index.html',
   'FILE'
 );
 
