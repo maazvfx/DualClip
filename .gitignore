@@ -1,0 +1,42 @@
+## Visual Studio / .NET
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+
+## SQLite & Local App Data
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+## OS / IDE
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+.idea/
+.vscode/
+
+## Test & Build Outputs
+TestResults/
+*.log
+release/installer/*.exe
+release/portable/*.zip
+dist/
+*.exe
+*.zip
+backup/
+prototypes/
+ui/preview-*.html
+.obsidian/
+.freebuff/
+.gemini/
+.agent/
+.claude/
+.cursor/
