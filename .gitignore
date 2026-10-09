@@ -52,3 +52,14 @@ ui/preview-*.html
 *.env.*
 AGENTS.md
 .agents/
+docs/archive/
+docs/plans/
+docs/wiki/
+docs/knowledge/
+docs/prompt.md
+docs/STATE.md
+docs/QUEUE.md
+docs/DECISIONS.md
+docs/RULES.md
+docs/CODEMAP.md
+docs/cleanup-plan.md
