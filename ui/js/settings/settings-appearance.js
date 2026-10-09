@@ -1,4 +1,4 @@
-function createBooleanAppearanceSetting(config) {
+﻿function createBooleanAppearanceSetting(config) {
   const { storageKey, className, attrName, toggleId, notifyKey } = config;
 
   const getVal = () => localStorage.getItem(storageKey) === '1';
@@ -250,7 +250,7 @@ function toggleRememberSelectedClipSetting(el) {
   const willBeOn = !el.classList.contains('on');
   el.classList.toggle('on', willBeOn);
   try { localStorage.setItem('dualclip_remember_selected_clip', willBeOn ? '1' : '0'); } catch(e) {}
-  if (typeof showToast === 'function') showToast(willBeOn ? 'Selection memory: on — will remember selected clip' : 'Selection memory: off — will jump to top on open');
+  if (typeof showToast === 'function') showToast(willBeOn ? 'Remember selected clip: Enabled' : 'Remember selected clip: Disabled');
   notifySettingSaved('row_remember_selected_clip');
 }
 window.toggleRememberSelectedClipSetting = toggleRememberSelectedClipSetting;
