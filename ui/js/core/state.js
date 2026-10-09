@@ -1003,9 +1003,10 @@ window.onWindowHide = function() {
       }
     } catch {}
     // Selection memory — snapshot selected clip ID before reset if enabled
+    let _willRememberSel = false;
     try {
-      const rememberSel = localStorage.getItem('dualclip_remember_selected_clip') !== '0';
-      if (rememberSel) {
+      _willRememberSel = localStorage.getItem('dualclip_remember_selected_clip') === '1';
+      if (_willRememberSel) {
         let activeId = null;
         if (typeof selectedIndex === 'number' && selectedIndex >= 0 && Array.isArray(clips) && clips[selectedIndex]) {
           activeId = clips[selectedIndex].id;
@@ -1031,7 +1032,12 @@ window.onWindowHide = function() {
     else if (allClips.length > 0) selectedIndices.add(0);
     lastAnchorIndex = 0;
     var c = document.getElementById('listContainer');
-    if (c) c.scrollTop = 0;
+    if (c) {
+      c.scrollTop = 0;
+      if (_willRememberSel) {
+        c.style.opacity = '0';
+      }
+    }
     // Session is finished: clear any active search query, filter popups,
     // or temporary expanded states so reopening starts completely fresh.
     try {
@@ -1254,32 +1260,21 @@ window.onWindowShow = function() {
   const _applyAndReveal = () => {
     if (_settled) return;
     _settled = true;
-    try {
-      if (typeof applyFilters === 'function') applyFilters();
-      else if (typeof renderVirtualWindow === 'function') renderVirtualWindow();
-    } catch {}
 
     try {
-      const rememberSel = localStorage.getItem('dualclip_remember_selected_clip') !== '0';
+      const rememberSel = localStorage.getItem('dualclip_remember_selected_clip') === '1';
       const savedIdStr = rememberSel ? localStorage.getItem('dualclip_remember_selected_clip_id') : null;
       let restored = false;
       if (savedIdStr != null && !hadBackgroundAdd) {
         const savedId = parseInt(savedIdStr, 10);
-        if (!isNaN(savedId) && Array.isArray(clips) && clips.length > 0) {
-          const matchIdx = clips.findIndex(c => c && c.id === savedId);
-          if (matchIdx >= 0) {
-            if (typeof restoreSelectionByIds === 'function') {
-              restoreSelectionByIds(new Set([savedId]), 0);
-            } else {
-              selectedIndex = matchIdx;
-              selectedIndices.clear();
-              selectedIndices.add(matchIdx);
-              lastAnchorIndex = matchIdx;
-            }
-            if (typeof scrollIndexIntoView === 'function') {
-              scrollIndexIntoView(selectedIndex);
-            }
-            restored = true;
+        if (!isNaN(savedId)) {
+          if (typeof selectedIds !== 'undefined' && selectedIds && typeof selectedIds.add === 'function') {
+            selectedIds.clear();
+            selectedIds.add(savedId);
+          }
+          if (typeof restoreSelectionByIds === 'function') {
+            restoreSelectionByIds(new Set([savedId]), 0);
+            restored = selectedIndices.size > 0 && selectedIndex >= 0;
           }
         }
       }
@@ -1291,6 +1286,17 @@ window.onWindowShow = function() {
         lastAnchorIndex = 0;
         const listCont = document.getElementById('listContainer');
         if (listCont) listCont.scrollTop = 0;
+      }
+    } catch (_) {}
+
+    try {
+      if (typeof applyFilters === 'function') applyFilters();
+      else if (typeof renderVirtualWindow === 'function') renderVirtualWindow();
+    } catch {}
+
+    try {
+      if (typeof selectedIndex === 'number' && selectedIndex >= 0 && typeof scrollIndexIntoView === 'function') {
+        scrollIndexIntoView(selectedIndex);
       }
     } catch (_) {}
 

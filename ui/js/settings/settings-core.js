@@ -191,7 +191,7 @@ function syncSettingsUiFromStorage() {
     const rcTgl = document.getElementById('stRememberCollectionToggle');
     if (rcTgl) rcTgl.classList.toggle('on', rememberCollection);
 
-    const rememberSelectedClip = localStorage.getItem('dualclip_remember_selected_clip') !== '0';
+    const rememberSelectedClip = localStorage.getItem('dualclip_remember_selected_clip') === '1';
     const rscTgl = document.getElementById('stRememberSelectedClipToggle');
     if (rscTgl) rscTgl.classList.toggle('on', rememberSelectedClip);
 
