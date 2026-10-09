@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace DualClip.Services;
@@ -179,7 +180,9 @@ public class HotkeyService : IDisposable
                         if (!_winVDown)
                         {
                             _winVDown = true;
-                            HotkeyPressed?.Invoke();
+                            // Asynchronous dispatch ensures low-level hook callback returns (IntPtr)1 immediately
+                            // and never triggers Windows LowLevelHooksTimeout unhooking under load.
+                            ThreadPool.QueueUserWorkItem(_ => HotkeyPressed?.Invoke());
                         }
                         return (IntPtr)1;
                     }

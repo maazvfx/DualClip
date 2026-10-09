@@ -1,5 +1,7 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
+using System.Runtime;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
@@ -116,6 +118,18 @@ internal static class Program
 
             Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
             ApplicationConfiguration.Initialize();
+
+            // High-Performance Tuning (like Ditto / PowerToys):
+            // Elevate process and UI thread priority so hotkey activation and popup rendering
+            // never lag or drop frames even under 100% CPU system stress.
+            try
+            {
+                Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.AboveNormal;
+                Thread.CurrentThread.Priority = ThreadPriority.AboveNormal;
+                GCSettings.LatencyMode = GCLatencyMode.SustainedLowLatency;
+            }
+            catch { }
+
             if (PathHelper.IsPortableMode)
             {
                 ConcealPortableSiblings();

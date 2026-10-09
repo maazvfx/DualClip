@@ -248,6 +248,9 @@ public partial class MainForm : Form
     private Size _morphToSize;
     private volatile bool _inSequentialPaste = false;
     private DateTime _lastShowTime = DateTime.MinValue;
+    private DateTime _lastCycleTime = DateTime.MinValue;
+    private const double SummonDebounceMs = HotkeyTogglePolicy.DefaultSummonDebounceMs;
+    private const double CycleDebounceMs = HotkeyTogglePolicy.DefaultCycleDebounceMs;
 
     private bool IsDualClipHwnd(IntPtr hwnd)
     {
@@ -489,6 +492,8 @@ public partial class MainForm : Form
         BackColor = Color.FromArgb(8, 9, 12);
         ShowInTaskbar = false;
         KeyPreview = true;
+        SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
+        UpdateStyles();
 
         var iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "assets", "app.ico");
         if (File.Exists(iconPath))
@@ -787,7 +792,7 @@ public partial class MainForm : Form
             }
         };
 
-        _foregroundTrackerTimer = new System.Windows.Forms.Timer { Interval = 100 };
+        _foregroundTrackerTimer = new System.Windows.Forms.Timer { Interval = 500 };
         _foregroundTrackerTimer.Tick += (s, e) =>
         {
             var fg = GetForegroundWindow();
@@ -908,42 +913,54 @@ public partial class MainForm : Form
 
     private void ToggleWindow(bool fromTray)
     {
-        if (Visible)
+        var fgToggle = GetForegroundWindow();
+        bool isForeground = fgToggle == Handle || IsDualClipHwnd(fgToggle);
+        double elapsedSinceShow = (DateTime.UtcNow - _lastShowTime).TotalMilliseconds;
+        double elapsedSinceCycle = (DateTime.UtcNow - _lastCycleTime).TotalMilliseconds;
+        var settings = AppSettings.Load();
+
+        var action = HotkeyTogglePolicy.Evaluate(
+            isVisible: Visible,
+            isForeground: isForeground,
+            elapsedSinceShowMs: elapsedSinceShow,
+            elapsedSinceCycleMs: elapsedSinceCycle,
+            smartShortcuts: settings.SmartShortcuts,
+            modifiersHeld: _modifiersHeld && AreAnyModifiersHeld(),
+            fromTray: fromTray,
+            summonDebounceMs: SummonDebounceMs,
+            cycleDebounceMs: CycleDebounceMs);
+
+        switch (action)
         {
-            var fgToggle = GetForegroundWindow();
-            if (fgToggle != IntPtr.Zero && fgToggle != Handle && !IsDualClipHwnd(fgToggle))
-            {
-                // Visible but inactive (e.g. a dialog pinned it open past an
-                // outside click): pull it forward instead of hiding it, or the
-                // first hotkey press reads as "does not open".
-                _allowVisible = true;
-                Opacity = 1.0;
-                if (WindowState == FormWindowState.Minimized) WindowState = FormWindowState.Normal;
-                try { ForceForegroundWindow(Handle); } catch { }
-                try { _webView?.Focus(); } catch { }
-                _lastActiveHwnd = fgToggle;
-                return;
-            }
-            var settings = AppSettings.Load(forceReload: true);
-            // Hold & Cycle: onCycleNext ONLY triggers if SmartShortcuts is enabled,
-            // the modifier tracker is active, AND modifiers are currently held down.
-            if (!fromTray && settings.SmartShortcuts && _modifiersHeld && AreAnyModifiersHeld())
-            {
+            case HotkeyAction.Show:
+            case HotkeyAction.RepositionAndBringToFront:
+                // Summon requested: ensures window is placed at active cursor on active monitor,
+                // brought cleanly to front, and debounced against rapid bounces.
+                ShowWindow(fromTray);
+                if (!fromTray)
+                {
+                    StartModifierReleaseTracker();
+                }
+                break;
+
+            case HotkeyAction.IgnoreBounce:
+                // Rapid repeat / bounce buffer: absorbs accidental multi-taps, key repeats,
+                // or queued hotkey messages under system stress.
+                break;
+
+            case HotkeyAction.CycleNext:
+                _lastCycleTime = DateTime.UtcNow;
                 PostEventToJs("onCycleNext", new { });
                 StartModifierReleaseTracker();
-            }
-            else
-            {
+                break;
+
+            case HotkeyAction.IgnoreCycleCooldown:
+                // Cycle repeat cooldown to prevent runaway stepping
+                break;
+
+            case HotkeyAction.Hide:
                 HideWindow();
-            }
-        }
-        else
-        {
-            ShowWindow(fromTray);
-            if (!fromTray)
-            {
-                StartModifierReleaseTracker();
-            }
+                break;
         }
     }
 
@@ -995,7 +1012,7 @@ public partial class MainForm : Form
             _lastActiveHwnd = fg;
         }
 
-        var settings = AppSettings.Load(forceReload: true);
+        var settings = AppSettings.Load();
         int x, y;
         var cursor = Cursor.Position;
         var screen = Screen.FromPoint(cursor).WorkingArea;
@@ -1041,7 +1058,7 @@ public partial class MainForm : Form
                 }
             }
         }
-        var mode = fromTray ? (settings.TrayPositionMode ?? "center") : (settings.WindowPositionMode ?? "top_left");
+        var mode = fromTray ? (settings.TrayPositionMode ?? "center") : (settings.WindowPositionMode ?? "near");
         mode = (mode ?? "").Trim().ToLowerInvariant();
 
         if (mode == "near_above" || mode == "above" || mode == "centered_above")
@@ -1108,6 +1125,19 @@ public partial class MainForm : Form
         {
             SetWindowPos(Handle, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
             BringWindowToTop(Handle);
+
+            // Fast direct activation: registering the hotkey grants foreground transfer rights in Windows
+            if (SetForegroundWindow(Handle))
+            {
+                return;
+            }
+
+            // Harmless null key input unlocks Windows foreground lock without tying thread input queues
+            keybd_event(0, 0, 0, UIntPtr.Zero);
+            if (SetForegroundWindow(Handle))
+            {
+                return;
+            }
 
             var fg = GetForegroundWindow();
             uint fgThread = fg != IntPtr.Zero ? GetWindowThreadProcessId(fg, out _) : 0;
@@ -1242,7 +1272,7 @@ public partial class MainForm : Form
             {
                 try
                 {
-                    var cur = AppSettings.Load(forceReload: true);
+                    var cur = AppSettings.Load();
                     cur.WindowX = sx;
                     cur.WindowY = sy;
                     // HideWindow also persists size. While Settings is open the window carries a
@@ -1279,7 +1309,11 @@ public partial class MainForm : Form
                 "--disable-sync " +
                 "--disable-features=EdgeSmartScreen " +
                 "--disable-domain-reliability " +
-                "--disable-telemetry");
+                "--disable-telemetry " +
+                "--disable-background-timer-throttling " +
+                "--disable-backgrounding-occluded-windows " +
+                "--disable-renderer-backgrounding " +
+                "--disable-ipc-flooding-protection");
             var env = await CoreWebView2Environment.CreateAsync(null, userDataFolder, envOptions);
             await _webView.EnsureCoreWebView2Async(env);
 

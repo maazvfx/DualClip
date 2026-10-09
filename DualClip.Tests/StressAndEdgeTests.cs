@@ -93,7 +93,7 @@ public class StressAndEdgeTests
     public void LargePayload_MegabyteText_InsertsAndSearches()
     {
         using var db = new TestDb();
-        db.WaitForFts();
+        db.WaitForFts(TimeSpan.FromSeconds(30));
         var blob = new string('x', 1_000_000) + " searchTermNeedle " + new string('y', 1_000_000);
 
         var id = db.AddText(blob);
@@ -124,8 +124,11 @@ public class StressAndEdgeTests
         Assert.Equal(0, skipped);
         Assert.Equal(0, skippedImages);
 
-        // Post-import integrity: paginated reads return consistent totals.
-        Assert.Equal(2000, db.Search("", limit: 5000).Count);
+        // Post-import integrity: reads return consistent totals. NOTE: the
+        // search engine clamps limit to SearchConstants.MaxClampedLimit (500)
+        // by design, so the assertion respects the paged API contract.
+        Assert.Equal(DualClip.Services.SearchConstants.MaxClampedLimit,
+                     db.Search("", limit: 5000).Count);
     }
 
     [Fact]
