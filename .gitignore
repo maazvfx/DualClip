@@ -50,3 +50,5 @@ ui/preview-*.html
 *.crt
 *.env
 *.env.*
+AGENTS.md
+.agents/
