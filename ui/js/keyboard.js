@@ -1,11 +1,8 @@
 // --- DualClip Keyboard Navigation, Window Dragging & Lifecycle ---
 
 // Dev-only reload shortcut (F5 / Ctrl+R).
-// ACTIVE while we are still iterating — leave it true during development.
-// MUST be set to false before the final release build: on, it sits above the IME, input and modal
-// guards, so a stray F5 while typing in a dialog reloads the page and discards the edit.
-// See "Fix status" in docs/audits/keyboard-hotkeys-audit-2026-10-05.md (K1).
-const DEV_HOT_RELOAD = true;
+// Set to false for production / release so stray F5 or Ctrl+R does not reload the app and discard user edits.
+const DEV_HOT_RELOAD = false;
 
 function hideWindow(force = false) {
   window._smartHoldActive = false;
