@@ -246,6 +246,15 @@ function toggleRememberCollectionSetting(el) {
   notifySettingSaved('row_remember_collection');
 }
 
+function toggleRememberSelectedClipSetting(el) {
+  const willBeOn = !el.classList.contains('on');
+  el.classList.toggle('on', willBeOn);
+  try { localStorage.setItem('dualclip_remember_selected_clip', willBeOn ? '1' : '0'); } catch(e) {}
+  if (typeof showToast === 'function') showToast(willBeOn ? 'Selection memory: on — will remember selected clip' : 'Selection memory: off — will jump to top on open');
+  notifySettingSaved('row_remember_selected_clip');
+}
+window.toggleRememberSelectedClipSetting = toggleRememberSelectedClipSetting;
+
 
 function toggleTaskbarSetting(el) {
   const willBeOn = !el.classList.contains('on');

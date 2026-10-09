@@ -1002,6 +1002,27 @@ window.onWindowHide = function() {
         try { if (typeof renderCollectionPills === 'function') renderCollectionPills(); } catch {}
       }
     } catch {}
+    // Selection memory — snapshot selected clip ID before reset if enabled
+    try {
+      const rememberSel = localStorage.getItem('dualclip_remember_selected_clip') !== '0';
+      if (rememberSel) {
+        let activeId = null;
+        if (typeof selectedIndex === 'number' && selectedIndex >= 0 && Array.isArray(clips) && clips[selectedIndex]) {
+          activeId = clips[selectedIndex].id;
+        } else if (typeof snapshotSelectedIds === 'function') {
+          const ids = snapshotSelectedIds();
+          if (ids && ids.size > 0) activeId = Array.from(ids)[0];
+        }
+        if (activeId != null) {
+          localStorage.setItem('dualclip_remember_selected_clip_id', String(activeId));
+        } else {
+          localStorage.removeItem('dualclip_remember_selected_clip_id');
+        }
+      } else {
+        localStorage.removeItem('dualclip_remember_selected_clip_id');
+      }
+    } catch (_) {}
+
     // Immediate reset so next Show never paints stale selection/scroll
     selectedIndex = 0;
     expandedIndex = -1;
@@ -1228,15 +1249,53 @@ window.onWindowShow = function() {
     return;
   }
   // Branch B: Ensure clips loaded
-  loadClipsFromBackend();
+  const _loadPromise = loadClipsFromBackend();
+  const _applyRestoreSelection = () => {
+    try {
+      const rememberSel = localStorage.getItem('dualclip_remember_selected_clip') !== '0';
+      const savedIdStr = rememberSel ? localStorage.getItem('dualclip_remember_selected_clip_id') : null;
+      let restored = false;
+      if (savedIdStr != null && !hadBackgroundAdd) {
+        const savedId = parseInt(savedIdStr, 10);
+        if (!isNaN(savedId) && Array.isArray(clips) && clips.length > 0) {
+          const matchIdx = clips.findIndex(c => c && c.id === savedId);
+          if (matchIdx >= 0) {
+            if (typeof restoreSelectionByIds === 'function') {
+              restoreSelectionByIds(new Set([savedId]), 0);
+            } else {
+              selectedIndex = matchIdx;
+              selectedIndices.clear();
+              selectedIndices.add(matchIdx);
+              lastAnchorIndex = matchIdx;
+            }
+            if (typeof scrollIndexIntoView === 'function') {
+              scrollIndexIntoView(selectedIndex);
+            }
+            restored = true;
+          }
+        }
+      }
+      if (!restored) {
+        selectedIndex = 0;
+        selectedIndices.clear();
+        if (clips.length > 0) selectedIndices.add(0);
+        else if (allClips.length > 0) selectedIndices.add(0);
+        lastAnchorIndex = 0;
+        const listCont = document.getElementById('listContainer');
+        if (listCont) listCont.scrollTop = 0;
+      }
+    } catch (_) {}
+  };
+
+  if (_loadPromise && typeof _loadPromise.then === 'function') {
+    _loadPromise.then(() => {
+      _applyRestoreSelection();
+      try { if (typeof syncLivePreview === 'function') syncLivePreview(); } catch (_) {}
+    }).catch(() => {});
+  }
+
   if (true) {
-    selectedIndex = 0;
-    selectedIndices.clear();
-    if (clips.length > 0) selectedIndices.add(0);
-    else if (allClips.length > 0) selectedIndices.add(0);
-    lastAnchorIndex = 0;
-    const listCont = document.getElementById('listContainer');
-    if (listCont) listCont.scrollTop = 0;
+    _applyRestoreSelection();
     pendingWindowShowLoad = false;
     try {
       if (typeof applyFilters === 'function') applyFilters();
