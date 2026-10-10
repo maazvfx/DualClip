@@ -471,7 +471,6 @@ let _visibleBurstRaf = null;
 var _windowVisible = false;
 try { if (typeof document !== 'undefined' && document.visibilityState === 'visible') _windowVisible = true; } catch {}
 var _lastHiddenAt = 0;
-var _needsRefetch = false;
 var hiddenRenderDebounceTimer = null;
 function scheduleHiddenCoalescedRender() {
   if (hiddenRenderDebounceTimer) clearTimeout(hiddenRenderDebounceTimer);
@@ -505,7 +504,6 @@ window.setWindowVisibility = function(visible) {
   _windowVisible = !!visible;
   if (!_windowVisible) _lastHiddenAt = Date.now();
 };
-window.invalidateClips = function() { _needsRefetch = true; };
 
 function formatTime(totalSeconds) {
   const m = Math.floor(totalSeconds / 60);
@@ -1320,7 +1318,6 @@ window.onWindowShow = function() {
     if (typeof closeRecentSearchesDropdown === 'function') closeRecentSearchesDropdown();
     try { window._dcRevealWindow(); } catch {}
     try { if (window.pywebview && window.pywebview.api && window.pywebview.api.window_show_ack) window.pywebview.api.window_show_ack(); else if (window.chrome && window.chrome.webview) window.chrome.webview.postMessage({id:0, method:'window_show_ack', args:[]}); } catch {}
-    _needsRefetch = false;
   };
 
   // Race: DB fetch resolution vs 120ms safety timeout fallback
@@ -1332,48 +1329,6 @@ window.onWindowShow = function() {
     });
   }
   setTimeout(_applyAndReveal, 120);
-  return;
-  // Refetch needed (extended sleep >5min or external DB change)
-  _needsRefetch = false;
-  selectedIndex = 0;
-  selectedIndices.clear();
-  selectedIndices.add(0);
-  lastAnchorIndex = 0;
-  const listCont = document.getElementById('listContainer');
-  if (listCont) listCont.scrollTop = 0;
-  pendingWindowShowLoad = true;
-  syncPauseStateFromBackend();
-  var _wslP = loadClipsFromBackend();
-  function _wslAck() {
-    requestAnimationFrame(function() {
-      requestAnimationFrame(function() {
-        try { window._dcRevealWindow(); } catch {}
-        try { if (window.pywebview && window.pywebview.api && window.pywebview.api.window_show_ack) window.pywebview.api.window_show_ack(); else if (window.chrome && window.chrome.webview) window.chrome.webview.postMessage({id:0, method:'window_show_ack', args:[]}); } catch {}
-      });
-    });
-  }
-  if (_wslP && typeof _wslP.then === 'function') {
-    _wslP.then(function(){ _wslAck(); }).catch(function(){ _wslAck(); });
-  } else {
-    _wslAck();
-  }
-  const searchInput = document.getElementById('searchInput');
-  if (searchInput) {
-    searchInput.value = '';
-    try {
-      if (localStorage.getItem('dualclip_autofocus_search') === '1') {
-        requestAnimationFrame(() => { try { searchInput.focus(); } catch(e){} });
-      } else {
-        searchInput.blur();
-        document.body.focus();
-      }
-    } catch(e) {}
-  }
-  const searchClear = document.getElementById('searchClear');
-  if (searchClear) searchClear.style.display = 'none';
-  if (typeof closeRecentSearchesDropdown === 'function') closeRecentSearchesDropdown();
-  try { if (typeof checkPendingSupporterPrompt === 'function') checkPendingSupporterPrompt(); } catch(e) {}
-  try { if (typeof checkAndTriggerMilestones === 'function') checkAndTriggerMilestones(); } catch(e) {}
 };
 
 function checkOnboardingTip() {
