@@ -5,11 +5,11 @@
 ---
 
 ## 1. Active Focus & Working Status
-- **Current Status**: v1.0.0 Ready. Standalone installer and portable single-file packages verified.
+- **Current Status**: Phase 1 Dead-Code Cleanup & Performance Hardening.
 - **Verification Baseline**: 
-  - .NET XUnit backend suites: **268/268 passing** (0 failures).
+  - .NET XUnit backend suites: **280/280 passing** (0 failures).
   - Node.js invariant harnesses: **9/9 suites passing** (88+ invariant assertions green).
-  - Builds: Clean with 0 warnings. Hot reload disabled (`DEV_HOT_RELOAD = false`).
+  - Builds: Clean with 0 warnings, 0 errors.
 - **Primary Source of Truth**: [`docs/wiki/INDEX.md`](wiki/INDEX.md)
 
 ---
