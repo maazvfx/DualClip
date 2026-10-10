@@ -1,4 +1,4 @@
-// DualClip JS Module: settings-shortcuts.js
+﻿// DualClip JS Module: settings-shortcuts.js
 // Auto-split from settings.js - complete functions, no mid-function cuts
 
 // Remote About links (dynamic, no app update needed).
@@ -546,7 +546,7 @@ const SETTINGS_SEARCH_INDEX = [
   { id: 'row_backup_db', tab: 'storage', label: 'Export & Import Clips', desc: 'Save clips to a JSON file or merge one back in', keywords: 'export import backup restore json save share file merge clips' }
 ];
 
-let currentSettingsSearchQuery = '';
+
 
 
 function changeDragOutMode(val, notify = true) {

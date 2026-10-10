@@ -1,4 +1,4 @@
-// DualClip JS Module: settings-core.js
+﻿// DualClip JS Module: settings-core.js
 // Auto-split from settings.js - complete functions, no mid-function cuts
 
 // --- DualClip Settings Views, Preferences & Hotkey Recording ---
@@ -1055,7 +1055,7 @@ function onSettingsSearch(query, immediate = false) {
 
 function executeSettingsSearch(query) {
   const q = (query || '').trim().toLowerCase();
-  currentSettingsSearchQuery = q;
+  
   const clearBtn = document.getElementById('settingsSearchClear');
   if (clearBtn) clearBtn.style.display = q ? 'block' : 'none';
 

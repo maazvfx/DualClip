@@ -1,4 +1,4 @@
-// --- DualClip Core Namespace & Shared State ---
+﻿// --- DualClip Core Namespace & Shared State ---
 window.DC = window.DC || {};
 
 // --- Cold-start frontend timing (pairs with C# StartupProfiler) ---
@@ -174,12 +174,6 @@ var hasNotifiedUiReady = false;
 var isCapturePaused = false;
 var isGroupedView = true;
 var isWindowPinned = false;
-var isHoverPreviewEnabled = false;
-try {
-  if (localStorage.getItem('dualclip_hover_preview_enabled') === '1') {
-    isHoverPreviewEnabled = true;
-  }
-} catch(e) {}
 
 // Feature Bisection Switches (all ON by default)
 var FEATURES_ENABLED = {
@@ -210,10 +204,10 @@ try {
 }
 
 // Interaction & Display State
-var hoverPreviewDelayMs = 1000;
-var hoverCardMode = 'meta';
+
+
 var imageDisplayMode = 'thumbnail_only';
-var hoverTimer = null;
+
 var currentZebraStyle = 'off';
 var currentLineDisplay = 'auto';
 var groupingMode = 'date';
@@ -221,8 +215,6 @@ var sectionClickMode = 'chevron_only';
 var currentThumbSize = 'sm';
 
 try {
-  hoverPreviewDelayMs = parseInt(localStorage.getItem('dualclip_hover_delay') || '1000', 10);
-  hoverCardMode = localStorage.getItem('dualclip_hover_mode') || 'meta';
   imageDisplayMode = localStorage.getItem('dualclip_image_display_mode') || 'thumbnail_only';
   currentZebraStyle = localStorage.getItem('dualclip_zebra_style') || 'off';
   currentLineDisplay = localStorage.getItem('dualclip_line_display') || 'auto';
@@ -238,8 +230,8 @@ try {
 
 // Zoom & Window Dimensions
 var currentZoomLevel = 1.0;
-var currentBaseWidth = 970;
-var currentBaseHeight = 730;
+
+
 
 // Collections — 100% clean slate for fresh installs: zero third-party presets.
 // Bottom bar shows static pills (All Items / Favorites / Most Used, in index.html)
@@ -467,15 +459,6 @@ var isCollectionsBarHidden = false;
 try {
   isCollectionsBarHidden = localStorage.getItem('dualclip_bottom_bar_hidden') === 'true';
 } catch(e) {}
-
-// Hotkey Recording State
-var isRecordingHotkey = false;
-var hotkeyAbortHandler = null;
-
-// Window Dragging State
-var isWindowDragging = false;
-var dragStartScreenX = 0, dragStartScreenY = 0;
-var dragStartWinX = 0, dragStartWinY = 0;
 
 // Blur Auto-Hide Timers
 var blurHideTimer = null;

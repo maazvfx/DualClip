@@ -120,8 +120,6 @@ function applyWindowSizePreset(preset, animate = false) {
   }
   else if (['medium', 'tall', 'wide', 'ultrawide'].includes(canonicalVal)) { canonicalVal = 'default'; }
   
-  currentBaseWidth = w;
-  currentBaseHeight = h;
   
   const zoom = typeof currentZoomLevel !== 'undefined' ? currentZoomLevel : 1.0;
   const targetW = Math.round(w * zoom);
@@ -330,7 +328,7 @@ function changeLinesPerClipSetting(value) {
 }
 window.changeLinesPerClipSetting = changeLinesPerClipSetting;
 
-let _densityPreviewInitDone = false;
+
 
 function setDetailsLocked(locked) {
   // No-op: Clip details is permanently unlocked for direct user control
@@ -359,7 +357,7 @@ function switchDensityPreview(val) {
   if (typeof renderList === 'function') {
     try { renderList(); } catch(e) {}
   }
-  _densityPreviewInitDone = true;
+  
 }
 window.switchDensityPreview = switchDensityPreview;
 

@@ -1,4 +1,4 @@
-// --- DualClip Tooltips, Popovers & Toast Notifications ---
+﻿// --- DualClip Tooltips, Popovers & Toast Notifications ---
 
 let globalInfoTooltipTimer = null;
 let activeTooltipTarget = null;
@@ -38,8 +38,8 @@ function findTooltipTarget(startEl) {
   return null;
 }
 
-let lastTooltipMouseX = null;
-let lastTooltipMouseY = null;
+
+
 
 function positionGlobalTooltip(target, tip) {
   if (!target || !tip) return;
@@ -146,8 +146,8 @@ function hideGlobalInfoTooltip() {
   }, true);
 
   document.addEventListener('mousemove', (e) => {
-    lastTooltipMouseX = e.clientX;
-    lastTooltipMouseY = e.clientY;
+    
+    
   }, { passive: true, capture: true });
 
   document.addEventListener('mousedown', hideGlobalInfoTooltip, true);
