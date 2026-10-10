@@ -1253,6 +1253,12 @@ function quickDeleteClip(event, idx) {
     });
   }
 
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attach);
+  } else {
+    attach();
+  }
+
   let resizeDebounceTimer = null;
   window.addEventListener('resize', function() {
     if (document.body && document.body.classList.contains('in-settings')) return;
