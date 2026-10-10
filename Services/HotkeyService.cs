@@ -13,7 +13,6 @@ public class HotkeyService : IDisposable
     private const int MOD_ALT = 0x0001;
     private const int MOD_CONTROL = 0x0002;
     private const int MOD_SHIFT = 0x0004;
-    private const int MOD_WIN = 0x0008;
     private const int MOD_NOREPEAT = 0x4000;
 
     private const int HOTKEY_ID_WIN_V = 9001;

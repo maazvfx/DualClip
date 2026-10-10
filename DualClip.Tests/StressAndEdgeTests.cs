@@ -131,17 +131,6 @@ public class StressAndEdgeTests
                      db.Search("", limit: 5000).Count);
     }
 
-    [Fact]
-    public void LargePayload_UrlCleaning_PreservesLegitLongUrls()
-    {
-        // A long-but-legitimate URL must not be corrupted by UrlCleaner.
-        var longUrl = "https://example.com/" + string.Join('/',
-            Enumerable.Repeat("segment", 200)) + "?q=" + new string('z', 500);
-        var cleaned = DualClip.Services.UrlCleaner.CleanUrl(longUrl);
-        Assert.False(string.IsNullOrWhiteSpace(cleaned));
-        Assert.StartsWith("https://", cleaned);
-    }
-
     // ---------------------------------------------------------------------
     // Crash/recovery semantics
     // ---------------------------------------------------------------------

@@ -95,20 +95,7 @@ public partial class MainForm : Form
     [DllImport("user32.dll", SetLastError = true)]
     private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
 
-    private const uint INPUT_MOUSE = 0;
     private const uint INPUT_KEYBOARD = 1;
-    private const uint INPUT_HARDWARE = 2;
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct MOUSEINPUT
-    {
-        public int dx;
-        public int dy;
-        public uint mouseData;
-        public uint dwFlags;
-        public uint time;
-        public UIntPtr dwExtraInfo;
-    }
 
     [StructLayout(LayoutKind.Sequential)]
     private struct KEYBDINPUT
@@ -120,20 +107,10 @@ public partial class MainForm : Form
         public UIntPtr dwExtraInfo;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
-    private struct HARDWAREINPUT
-    {
-        public uint uMsg;
-        public ushort wParamL;
-        public ushort wParamH;
-    }
-
     [StructLayout(LayoutKind.Explicit)]
     private struct InputUnion
     {
-        [FieldOffset(0)] public MOUSEINPUT mi;
         [FieldOffset(0)] public KEYBDINPUT ki;
-        [FieldOffset(0)] public HARDWAREINPUT hi;
     }
 
     [StructLayout(LayoutKind.Sequential)]

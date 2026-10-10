@@ -162,11 +162,8 @@ public class TrayService : IDisposable
 
     private long _lastClickTimestamp;
 
-    private string _currentTheme = "dark";
-
     public void SetTheme(string theme)
     {
-        _currentTheme = theme;
         ApplyTheme(theme);
     }
 

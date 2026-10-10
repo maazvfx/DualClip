@@ -24,11 +24,6 @@ public static class SearchConstants
     public const int DefaultLimit = 150;
 
     /// <summary>
-    /// UI fetch limit (mirrors frontend get_clips limit in state.js).
-    /// </summary>
-    public const int UiPageSize = 100;
-
-    /// <summary>
     /// Ceiling clamp on requested clip limits across all queries.
     /// Prevents unbounded query allocations.
     /// </summary>
