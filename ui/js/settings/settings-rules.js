@@ -25,30 +25,11 @@ function togglePreventScreenCaptureSetting(el) {
 
 
 function toggleIncognitoSetting(el) {
-  // Delegate to authoritative handler in core/state.js (single source of truth for red dot + toggle sync)
-  // Fallback to local toggle only if core handler unavailable
+  // Delegate directly to authoritative handler in core/state.js
   const coreFn = window._coreToggleIncognito || null;
-  if (coreFn && coreFn !== toggleIncognitoSetting) {
+  if (typeof coreFn === 'function') {
     return coreFn(el);
   }
-  // If core not yet loaded, use backend directly and sync via updatePauseStateUI
-  if (!el) el = document.getElementById('stIncognitoToggle');
-  const willBeOn = el ? !el.classList.contains('on') : true;
-  if (typeof updatePauseStateUI === 'function') {
-    // Optimistic UI, will be corrected by backend response
-    updatePauseStateUI(willBeOn);
-  } else {
-    if (el) el.classList.toggle('on', willBeOn);
-    const indicator = document.getElementById('pausedIndicator');
-    if (indicator) indicator.style.display = willBeOn ? 'inline-block' : 'none';
-  }
-  if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.set_paused === 'function') {
-    window.pywebview.api.set_paused(willBeOn).then(res => {
-      if (res && res.ok && typeof updatePauseStateUI === 'function') updatePauseStateUI(res.paused);
-    }).catch(()=>{});
-  }
-  try { localStorage.setItem('dualclip_incognito', willBeOn ? '1' : '0'); } catch(e) {}
-  if (typeof notifySettingSaved === 'function') notifySettingSaved('row_incognito');
 }
 
 function toggleCaptureImagesSetting(el) {

@@ -708,16 +708,6 @@ document.addEventListener('keydown', (e) => {
       winCycleCount++;
       if (typeof cycleSelection === 'function') {
         cycleSelection(e.key === 'ArrowDown' ? 1 : -1);
-      } else if (clips && clips.length > 0) {
-        if (e.key === 'ArrowDown') {
-          selectedIndex = (selectedIndex + 1) % clips.length;
-        } else {
-          selectedIndex = (selectedIndex - 1 + clips.length) % clips.length;
-        }
-        selectedIndices.clear();
-        selectedIndices.add(selectedIndex);
-        lastAnchorIndex = selectedIndex;
-        if (typeof scrollIndexIntoView === 'function') scrollIndexIntoView(selectedIndex);
       }
       return;
     }
@@ -1083,12 +1073,6 @@ window.onCycleNext = function() {
   winCycleCount++;
   if (typeof cycleSelection === 'function') {
     cycleSelection(1);
-  } else if (clips && clips.length > 0) {
-    selectedIndex = (selectedIndex + 1) % clips.length;
-    selectedIndices.clear();
-    selectedIndices.add(selectedIndex);
-    lastAnchorIndex = selectedIndex;
-    if (typeof scrollIndexIntoView === 'function') scrollIndexIntoView(selectedIndex);
   }
 };
 

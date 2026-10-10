@@ -1,4 +1,4 @@
-﻿// DualClip JS Module: settings-shortcuts.js
+// DualClip JS Module: settings-shortcuts.js
 // Auto-split from settings.js - complete functions, no mid-function cuts
 
 // Remote About links (dynamic, no app update needed).
@@ -311,14 +311,6 @@ function syncHotkeyDisplay() {
 }
 
 
-// Deprecated: Direct Move section was removed from the Shortcuts tab (now managed
-// in the Collections tab via renderSettingsCollectionsList). Kept as a safe shim.
-function renderDirectMoveSettingsList() {
-  if (typeof renderSettingsCollectionsList === 'function') {
-    try { renderSettingsCollectionsList(); } catch (e) {}
-  }
-}
-
 // Only plain 1-9 hotkeys (per request Ã¢â‚¬â€ modifiers removed)
 const HOTKEY_POP_GROUPS = [
   { label: '1 – 9', prefix: '' }
@@ -378,7 +370,6 @@ function onDirectMoveShortcutChange(colId, shortcutValue) {
     localStorage.setItem('dualclip_direct_col_shortcuts', JSON.stringify(savedShortcuts));
   } catch (e) {}
 
-  renderDirectMoveSettingsList();
   if (typeof renderSettingsCollectionsList === 'function') {
     renderSettingsCollectionsList();
   }
