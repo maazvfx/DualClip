@@ -1,0 +1,1904 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-style="linear" data-line-display="1" data-zebra="off">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DualClip - Smart Clipboard Manager</title>
+  <link rel="stylesheet" href="css/base-variables.css?v=61">
+  <link rel="stylesheet" href="css/layout-chrome.css?v=62">
+  <link rel="stylesheet" href="css/clip-list.css?v=62">
+  <link rel="stylesheet" href="css/collections-bar.css?v=64">
+  <link rel="stylesheet" href="css/settings.css?v=60">
+  <link rel="stylesheet" href="css/overlays-modals.css?v=90">
+  <link rel="stylesheet" href="css/sidebar-layout.css?v=32">
+  <!-- SQUARE-CORNERS TOGGLE: loaded last so html/body/#appFrame win as 0. Remove this line to restore rounded. -->
+  <link rel="stylesheet" href="css/square-corners.css?v=30">
+  <script>
+    // Cold-start T0 for frontend boot marks (see __dcMark in namespace.js).
+    try { window.__dcHeadT0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now(); } catch (e) {}
+    // Early global JS error trap so WebView2 Chromium ReferenceErrors are logged with file:line:col + stack instead of generic "Script error."
+    window.addEventListener('error', function(e) {
+      try {
+        var src = e.filename ? ' @ ' + e.filename + ':' + e.lineno + ':' + e.colno : '';
+        var stack = e.error && e.error.stack ? ' | stack: ' + String(e.error.stack).slice(0, 1200) : '';
+        var errName = e.error && e.error.name ? ' [' + e.error.name + ']' : '';
+        var msg = (e.message ? String(e.message) : 'Script error') + src + errName + stack;
+        try { console.error('[DualClip JS Error]', msg); } catch {}
+      } catch {}
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      try {
+        var reason = e.reason; var msg = String(reason); var stack = reason && reason.stack ? ' | stack: ' + String(reason.stack).slice(0,1200) : '';
+        var detail = 'unhandledrejection: ' + msg + stack;
+        try { console.error('[DualClip UnhandledRejection]', detail); } catch {}
+      } catch {}
+    });
+
+    // === TOP BAR EARLY ISOLATION ===
+    // Define window controls immediately so a later crash in render.js / filters.js / settings.js
+    // never disables the titlebar X / Pin. These are standalone and do NOT depend on any
+    // list state, collections, or WebView2 bridge beyond the direct hide_window / set_pinned RPC.
+    window.isWindowPinned = window.isWindowPinned || false;
+    window.hideWindow = window.hideWindow || function(force) {
+      try {
+        if (!force && window.isWindowPinned) {
+          try { console.log('hideWindow ignored: window is pinned'); } catch {}
+          return;
+        }
+        if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.hide_window === 'function') {
+          window.pywebview.api.hide_window();
+        } else if (window.chrome && window.chrome.webview) {
+          window.chrome.webview.postMessage({id:0, method:'hide_window', args:[]});
+        } else {
+          try { console.warn('hideWindow: bridge not ready'); } catch {}
+        }
+      } catch (e) { try { console.error('hideWindow failed', e); } catch {} }
+    };
+    window.toggleWindowPin = window.toggleWindowPin || function() {
+      try {
+        window.isWindowPinned = !window.isWindowPinned;
+        var btn = document.getElementById('pinWindowBtn');
+        if (btn) { try { btn.classList.toggle('active', window.isWindowPinned); } catch {} }
+        var btnSearch = document.getElementById('pinWindowBtnSearch');
+        if (btnSearch) { try { btnSearch.classList.toggle('active', window.isWindowPinned); } catch {} }
+        if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.set_pinned === 'function') {
+          window.pywebview.api.set_pinned(window.isWindowPinned);
+        } else if (window.chrome && window.chrome.webview) {
+          window.chrome.webview.postMessage({id:0, method:'set_pinned', args:[window.isWindowPinned]});
+        }
+      } catch (e) { try { console.error('toggleWindowPin failed', e); } catch {} }
+    };
+    // Attach early delegated listeners once DOM is parsed â€” these survive even if later JS files throw.
+    // Use stopImmediatePropagation to prevent the inline onclick="" from firing a second toggle (which would double-toggle Pin).
+    (function attachEarlyTitlebarHandlers() {
+      function bind() {
+        try {
+          var closeBtn = document.querySelector('.tb-btn.close');
+          if (closeBtn && !closeBtn._earlyBound) {
+            closeBtn._earlyBound = true;
+            // Remove inline handler to avoid double-execution; early listener is the single source
+            try { closeBtn.onclick = null; } catch {}
+            closeBtn.addEventListener('click', function(e) {
+              try {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                closeBtn.blur();
+                closeBtn.classList.add('no-hover');
+                if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+                document.body.classList.add('suppress-hover');
+                window.hideWindow(true);
+              } catch {}
+            }, true);
+            closeBtn.addEventListener('mouseleave', function() { closeBtn.classList.remove('no-hover'); });
+            closeBtn.addEventListener('mouseenter', function() { closeBtn.classList.remove('no-hover'); });
+          }
+          var pinBtn = document.getElementById('pinWindowBtn');
+          if (pinBtn && !pinBtn._earlyBound) {
+            pinBtn._earlyBound = true;
+            try { pinBtn.onclick = null; } catch {}
+            pinBtn.addEventListener('click', function(e) { try { e.preventDefault(); e.stopImmediatePropagation(); window.toggleWindowPin(); } catch {} }, true);
+          }
+        } catch {}
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bind, {once:true});
+      } else {
+        try { bind(); } catch {}
+      }
+      // Re-bind once window is shown (WebView2 may re-parent titlebar after hide/show)
+      try {
+        if (window.chrome && window.chrome.webview) {
+          window.chrome.webview.addEventListener('message', function(e) {
+            try {
+              var msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+              if (msg && msg.event === 'onWindowShow') setTimeout(bind, 60);
+            } catch {}
+          });
+        }
+      } catch {}
+    })();
+  </script>
+</head>
+<body class="zoomed-10">
+
+
+
+  <!-- DualClip Spotlight Frame -->
+  <div id="appFrame">
+    <!-- 8-Directional Window Resize Handles (Edges & Corners) -->
+    <div class="dc-resize-edge edge-t" data-resize-dir="top" title="Drag to resize"></div>
+    <div class="dc-resize-edge edge-b" data-resize-dir="bottom" title="Drag to resize"></div>
+    <div class="dc-resize-edge edge-l" data-resize-dir="left" title="Drag to resize"></div>
+    <div class="dc-resize-edge edge-r" data-resize-dir="right" title="Drag to resize"></div>
+    <div class="dc-resize-corner corner-tl" data-resize-dir="top-left" title="Drag to resize"></div>
+    <div class="dc-resize-corner corner-tr" data-resize-dir="top-right" title="Drag to resize"></div>
+    <div class="dc-resize-corner corner-bl" data-resize-dir="bottom-left" title="Drag to resize"></div>
+    <div id="resizeHandle" class="dc-resize-corner corner-br resize-handle" data-resize-dir="bottom-right" title="Drag to resize"></div>
+
+    <!-- Ultra-Minimal Titlebar -->
+    <div class="titlebar pywebview-drag-region">
+      <div class="titlebar-left" id="titlebarMain">
+        <div class="brand">
+          <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+            <rect x="8" y="2" width="8" height="4" rx="1"></rect>
+          </svg>
+          <span>DualClip</span>
+          <span id="pausedIndicator" class="paused-pill" style="display: none;" onclick="toggleIncognitoSetting()" title="Click to resume clipboard capture" role="button">PAUSED</span>
+        </div>
+      </div>
+
+      <div class="titlebar-left" id="titlebarSettings" style="display: none;">
+        <button class="btn-back" style="-webkit-app-region: no-drag; app-region: no-drag;" onclick="closeSettingsView()" title="Back to Clipboard History (Esc)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          <span>Back to History</span>
+        </button>
+      </div>
+
+      <!-- Right Titlebar Controls -->
+      <div class="titlebar-right" style="-webkit-app-region: no-drag; app-region: no-drag;">
+        <button id="btnToggleLayout" class="tb-btn" type="button" tabindex="-1" onclick="toggleSidebarLayout()" title="Switch to Sidebar View" style="-webkit-app-region: no-drag; app-region: no-drag;">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="9" y1="3" x2="9" y2="21"></line>
+          </svg>
+        </button>
+        <button id="btnLivePreviewTop" class="tb-btn" type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="toggleLivePreview()" title="Toggle Side Preview (Ctrl+Q / F8)" style="-webkit-app-region: no-drag; app-region: no-drag;">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="15" y1="3" x2="15" y2="21"></line>
+          </svg>
+        </button>
+        <button id="btnViewModeToggle" class="tb-btn" type="button" tabindex="-1" onclick="cycleViewMode()" title="View Mode: Standard (Click for Compact)" style="-webkit-app-region: no-drag; app-region: no-drag;">
+          <svg id="viewModeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 14 10 14 10 20"></polyline>
+            <line x1="10" y1="14" x2="3" y2="21"></line>
+            <polyline points="20 10 14 10 14 4"></polyline>
+            <line x1="14" y1="10" x2="21" y2="3"></line>
+          </svg>
+        </button>
+        <div class="tb-divider"></div>
+        <button id="pinWindowBtn" class="pin-icon-btn" type="button" tabindex="-1" onclick="toggleWindowPin()" title="Pin window on top" style="-webkit-app-region: no-drag; app-region: no-drag;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="17" x2="12" y2="22"></line>
+            <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a1 1 0 0 0 0-2H8a1 1 0 0 0 0 2h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path>
+          </svg>
+        </button>
+        <button id="btnSettingsTop" class="tb-btn" type="button" tabindex="-1" onclick="toggleSettingsView()" title="Settings &amp; Preferences (Ctrl+,)" style="-webkit-app-region: no-drag; app-region: no-drag;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l-.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+        <button class="tb-btn close" type="button" tabindex="-1" title="Close" onclick="hideWindow(true)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
+
+    </div>
+
+    <!-- Main History View -->
+    <div id="mainView" class="app-view">
+      <!-- Search Bar with Filters & Settings Cogwheel -->
+      <div class="search-wrapper">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <div id="scopeBadge" class="search-scope-badge" style="display: none;">
+          <span id="scopeBadgeText"></span>
+          <span class="search-scope-close" onclick="resetScopeToAll(event)" title="Clear scope (search all items)">&times;</span>
+        </div>
+        <input type="text" id="searchInput" class="search-input" placeholder="Search clipboard history..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <span id="searchResultCount" class="search-result-count" style="display: none;"></span>
+        <svg id="searchClear" class="search-clear" onclick="clearSearch()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+
+        <div class="search-buttons-cluster" id="searchButtonsCluster">
+          <button id="btnRecentSearches" class="filter-menu-btn icon-only-btn" type="button" tabindex="-1" onclick="toggleRecentSearchesDropdown(event)" title="Recent searches">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+          <button id="btnFilters" class="filter-menu-btn icon-only-btn" onclick="toggleFilterDropdown()" title="Filter clipboard history">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+          </button>
+          <button id="btnViewModeToggleSearch" class="filter-menu-btn icon-only-btn" type="button" tabindex="-1" onclick="cycleViewMode()" title="View Mode: Compact (Click for Standard)">
+            <svg id="viewModeIconSearch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <line x1="14" y1="10" x2="21" y2="3"></line>
+              <polyline points="9 21 3 21 3 15"></polyline>
+              <line x1="10" y1="14" x2="3" y2="21"></line>
+            </svg>
+          </button>
+          <button id="pinWindowBtnSearch" class="filter-menu-btn icon-only-btn pin-icon-btn" type="button" tabindex="-1" onclick="toggleWindowPin()" title="Pin window on top">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="17" x2="12" y2="22"></line>
+              <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a1 1 0 0 0 0-2H8a1 1 0 0 0 0 2h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path>
+            </svg>
+          </button>
+        </div>
+
+        <div id="recentSearchesDropdown" class="recent-searches-dropdown" style="display: none;"></div>
+      </div>
+
+      <!-- Active Filter Pills Bar -->
+      <div id="activePillsBar" class="active-pills-bar">
+        <span id="pillList" style="display: flex; gap: 6px; align-items: center;"></span>
+        <span class="clear-all-pills" onclick="resetAllFilters()">Clear Filters</span>
+      </div>
+
+      <!-- Filter Dropdown -->
+      <div id="filterDropdown" class="filter-dropdown">
+        <div>
+          <div class="filter-group-title">Content Type</div>
+          <div id="filterTypeGrid" class="filter-options-grid">
+            <span class="f-opt selected" onclick="setFilterType('all', this)">All</span>
+            <span class="f-opt" onclick="setFilterType('text', this)">Text</span>
+            <span class="f-opt" onclick="setFilterType('code', this)">Code</span>
+            <span class="f-opt" onclick="setFilterType('color', this)">Colors</span>
+            <span class="f-opt" onclick="setFilterType('image', this)">Images</span>
+            <span class="f-opt" onclick="setFilterType('url', this)">Web Links</span>
+            <span class="f-opt" onclick="setFilterType('file', this)">Files</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="filter-group-title">Filter by App</div>
+          <select id="filterAppSelect" class="st-select" style="width: 100%;" onchange="onFilterAppChange(this.value)">
+            <option value="all">All Applications</option>
+            <!-- Real source apps are populated dynamically by refreshSourceAppFilterOptions() -->
+          </select>
+        </div>
+
+        <div>
+          <div class="filter-group-title">Time Range</div>
+          <div id="filterTimeGrid" class="filter-options-grid">
+            <span class="f-opt selected" onclick="setFilterTime('any', this)">Any Time</span>
+            <span class="f-opt" onclick="setFilterTime('today', this)">Today</span>
+            <span class="f-opt" onclick="setFilterTime('yesterday', this)">Yesterday</span>
+            <span class="f-opt" onclick="setFilterTime('older', this)">Older</span>
+          </div>
+        </div>
+
+        <div id="filterTagsSection" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center;" class="filter-group-title">
+            <span>Tag</span>
+            <span style="font-size: 10.5px; color: var(--accent); cursor: pointer; text-transform: none; font-weight: 500;" onclick="closeFilterDropdown(); openManageTagsModal();">Manage Tags &rarr;</span>
+          </div>
+          <select id="filterTagSelect" class="st-select" style="width: 100%;" onchange="onFilterTagChange(this.value)">
+            <option value="all">All Tags</option>
+          </select>
+        </div>
+
+        <div>
+          <div class="filter-group-title">Search Mode & Priority</div>
+          <div class="filter-options-grid">
+            <span class="f-opt" id="optSortRecent" onclick="toggleRecentSort(this)">Most Recent</span>
+            <span class="f-opt" id="optBoostFavs" onclick="toggleFavoritesBoost(this)">Prioritize Favorites</span>
+            <span class="f-opt" id="optFuzzySearch" onclick="toggleFuzzySearch(this)">Fuzzy / Partial</span>
+          </div>
+        </div>
+
+        <div class="filter-actions">
+          <button class="btn-filter-reset" onclick="resetAllFilters()">Reset</button>
+          <button class="btn-filter-done" onclick="toggleFilterDropdown()">Done</button>
+        </div>
+      </div>
+
+      <!-- First-Run Onboarding Tip Bar -->
+      <div id="onboardingTip" class="onboarding-tip-bar" style="display: none;">
+        <div class="onboarding-tip-content">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          <span>Press <strong>Ctrl+Shift+V</strong> to toggle • <strong>Ctrl+,</strong> for Settings • Type to search</span>
+        </div>
+        <button class="onboarding-tip-close" onclick="dismissOnboardingTip()" title="Dismiss tip">&times;</button>
+      </div>
+
+      <!-- Milestone Celebration Banner -->
+      <div id="milestoneBanner" class="milestone-banner" style="display: none;">
+        <div class="milestone-banner-content">
+          <span class="milestone-emoji">🎉</span>
+          <span id="milestoneBannerText" class="milestone-text"></span>
+        </div>
+        <div class="milestone-banner-actions">
+          <button type="button" class="btn-milestone-support" onclick="teleportToTipSection()">Tip DualClip</button>
+          <button type="button" class="btn-milestone-dismiss" onclick="dismissMilestoneBanner()" title="Dismiss">&times;</button>
+        </div>
+      </div>
+
+      <!-- Clip List Area & Live Preview Sidebar -->
+      <div class="list-view-container" id="listViewContainer">
+        <!-- Sidebar Navigation Pane (Split-Layout Mode) -->
+        <div id="sidebarNav" class="sidebar-nav-container"></div>
+
+        <div class="list-wrapper" id="listContainer">
+          <div class="empty-state">
+            <div class="empty-state-icon-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                <line x1="9" y1="11" x2="15" y2="11"></line>
+                <line x1="9" y1="15" x2="13" y2="15"></line>
+              </svg>
+            </div>
+            <div class="empty-state-title">Clipboard is empty</div>
+            <div class="empty-state-desc">Copy anything with Ctrl+C to get started.</div>
+          </div>
+        </div>
+
+        <!-- Drag Handle for Preview Panel Width -->
+        <div id="livePreviewResizer" class="live-preview-resizer" title="Drag to resize preview panel" style="display: none;"></div>
+
+        <!-- Live Preview Panel (Split / Flyout) -->
+        <div id="livePreviewPanel" class="live-preview-panel" style="display: none;">
+          <div class="live-preview-header">
+            <div class="live-preview-title" id="livePreviewTitle">
+              <span id="livePreviewTypeBadge" class="live-preview-badge">TEXT</span>
+              <span id="livePreviewAppLabel" class="live-preview-app">Notepad</span>
+            </div>
+            <button class="live-preview-close" onclick="toggleLivePreview(false)" title="Close Preview (F8)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+          </div>
+          <div class="live-preview-body" id="livePreviewBody">
+            <div id="livePreviewTextContent" class="live-preview-text"></div>
+            <img id="livePreviewImageContent" class="live-preview-image" style="display: none;" alt="Preview">
+          </div>
+          <div class="live-preview-footer" id="livePreviewFooter">
+            <span id="livePreviewStats">0 chars</span>
+            <div style="display: inline-flex; gap: 6px; align-items: center;">
+              <button class="live-preview-action-btn" id="btnLivePreviewEdit" onclick="toggleLivePreviewEdit()" title="Edit clip">Edit</button>
+              <button class="live-preview-action-btn" id="btnLivePreviewSave" onclick="saveLivePreviewEdit()" title="Save edit" style="display: none;">Save</button>
+              <button class="live-preview-action-btn" id="btnLivePreviewCancel" onclick="cancelLivePreviewEdit()" title="Cancel edit" style="display: none; background: var(--card-bg); color: var(--text); border-color: var(--border);">Cancel</button>
+              <button class="live-preview-action-btn" onclick="pasteCurrentSelection()" title="Paste Clip (Enter)">Paste</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Collections Pill Bar with Collapse Arrow â€” arrow moved to left -->
+      <div class="collections-bar" id="collectionsBar">
+        <!-- Arrow Button to Hide Bottom Collections Bar (left side) -->
+        <button class="bar-toggle-btn" id="btnCollapseBar" title="Hide bottom collections bar (Toggle)" onclick="toggleCollectionsBar()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+        <div class="collections-scroll-area" id="collectionsScrollArea">
+          <span class="col-pill active" id="pill_all" onclick="selectCollection('all')">All Clips</span>
+          <span class="col-pill" id="pill_pins" onclick="selectCollection('pins')">Favorites</span>
+          <span class="col-pill" id="pill_most_used" onclick="selectCollection('most_used')">Most Used</span>
+          <div id="dynamicCollectionPills" style="display:inline-flex; gap:4px;"></div>
+          <span class="col-pill add-btn" id="btnNewCollection" onclick="openNewCollectionModal()">+ New</span>
+        </div>
+      </div>
+
+      <!-- Floating Arrow to Restore Bottom Bar when Hidden (left side) -->
+      <div class="floating-restore-bar-btn" id="floatingRestoreBtn" title="Show bottom collections bar" onclick="toggleCollectionsBar()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Settings View (In-Frame Dynamic View) -->
+    <div id="settingsView" class="app-view settings-view" style="display: none;">
+      <div class="settings-layout">
+        <!-- 7 Sidebar Tabs -->
+        <nav class="settings-tabs flat-nav" role="tablist" aria-label="Settings Categories">
+          <!-- Settings Quick Filter / Search -->
+          <div class="settings-search-container flat-nav-search-wrap">
+            <div class="flat-nav-search-control">
+              <input type="text" id="settingsSearchInput" class="st-input flat-nav-search-input"            placeholder="Search settings..." oninput="onSettingsSearch(this.value)" onkeydown="handleSettingsSearchKeydown(event)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+              <svg class="flat-nav-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <span id="settingsSearchClear" class="flat-nav-search-clear" onclick="clearSettingsSearch()" title="Clear search">&times;</span>
+            </div>
+          </div>
+
+          <div class="st-tab active" id="tabBtn_behavior" role="tab" tabindex="0" aria-selected="true" onclick="switchSettingsTab('behavior')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            <span>Behavior</span>
+          </div>
+          <div class="st-tab" id="tabBtn_theme" role="tab" tabindex="-1" aria-selected="false" onclick="switchSettingsTab('theme')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+            <span>Appearance</span>
+          </div>
+          <div class="st-tab" id="tabBtn_window" role="tab" tabindex="-1" aria-selected="false" onclick="switchSettingsTab('window')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+            <span>Window &amp; Hotkeys</span>
+          </div>
+          <div class="st-tab" id="tabBtn_routing" role="tab" tabindex="-1" aria-selected="false" onclick="switchSettingsTab('routing')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            <span>Rules &amp; Privacy</span>
+          </div>
+          <div class="st-tab" id="tabBtn_storage" role="tab" tabindex="-1" aria-selected="false" onclick="switchSettingsTab('storage')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Storage &amp; Retention</span>
+          </div>
+          <div class="st-tab" id="tabBtn_shortcuts" role="tab" tabindex="-1" aria-selected="false" onclick="switchSettingsTab('shortcuts')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M6 8h.001M10 8h.001M14 8h.001M18 8h.001M8 12h.001M12 12h.001M16 12h.001M7 16h10"></path></svg>
+            <span>Shortcuts</span>
+          </div>
+
+          <div class="st-sidebar-bottom">
+            <button type="button" class="st-sidebar-reset-btn" onclick="restoreCurrentTabDefaults()" title="Reset options in this tab back to default settings">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+              <span>Restore Defaults</span>
+            </button>
+          </div>
+        </nav>
+
+        <!-- 1. Behavior Tab -->
+        <div class="settings-content active" id="tabContent_behavior">
+          <!-- Section 1: Clipboard Recording -->
+          <div class="settings-section" style="padding: 0; gap: 0; overflow: visible; background: transparent; border: none; box-shadow: none;">
+            <div style="padding: 2px 2px 10px 2px;">
+              <div class="settings-section-head">Clipboard Recording</div>
+              <div class="settings-section-sub">Configure clip capture triggers, ignore filters, and history retention</div>
+            </div>
+            <div class="notion-setting-group">
+            <!-- 1. Pause Clipboard Capture -->
+            <div class="notion-setting-row" id="row_incognito">
+              <div class="setting-text-col">
+                <div class="setting-title">Pause Clipboard Capture</div>
+                <div class="setting-caption">Temporarily stop recording newly copied items into history</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <select id="stTimedIncognitoSelect" class="st-select" style="width:auto; padding:4px 8px; font-size:11.5px;" onchange="changeTimedIncognito(this.value)">
+                  <option value="0">Until turned off</option>
+                  <option value="5">For 5 minutes</option>
+                  <option value="15">For 15 minutes</option>
+                  <option value="30">For 30 minutes</option>
+                  <option value="60">For 1 hour</option>
+                </select>
+                <div class="st-toggle" id="stIncognitoToggle" onclick="toggleIncognitoSetting(this)"><div class="toggle-knob"></div></div>
+              </div>
+            </div>
+
+            <!-- 2. Capture Images & Screenshots -->
+            <div class="notion-setting-row" id="row_capture_images">
+              <div class="setting-text-col">
+                <div class="setting-title">Capture Images and Screenshots</div>
+                <div class="setting-caption">Save copied images and screenshots to your history</div>
+              </div>
+              <div class="st-toggle on" id="stCaptureImagesToggle" onclick="toggleCaptureImagesSetting(this)"><div class="toggle-knob"></div></div>
+            </div>
+
+            <!-- 3. Pause DualClip in fullscreen apps -->
+            <div class="notion-setting-row" id="row_fullscreen_guard">
+              <div class="setting-text-col">
+                <div class="setting-title">Pause DualClip in fullscreen apps</div>
+                <div class="setting-caption">Do not open DualClip while a fullscreen application or game is active</div>
+              </div>
+              <div class="st-toggle" id="stFullscreenGuardToggle" onclick="toggleFullscreenGuardSetting(this)"><div class="toggle-knob"></div></div>
+            </div>
+
+            <!-- 4. Remember Selected Clip -->
+            <div class="notion-setting-row" id="row_remember_selected_clip">
+              <div class="setting-text-col">
+                <div class="setting-title">Remember Selected Clip</div>
+                <div class="setting-caption">Keep your selected clip highlighted when reopening the window (new copies still jump to top)</div>
+              </div>
+              <div class="st-toggle" id="stRememberSelectedClipToggle" onclick="toggleRememberSelectedClipSetting(this)"><div class="toggle-knob"></div></div>
+            </div>
+            </div>
+          </div>
+
+          <!-- Section 2: Startup & Windows + Updates (merged single container) -->
+          <div class="settings-section" id="aboutUpdatesSection" style="padding: 0; gap: 0; overflow: visible; background: transparent; border: none; box-shadow: none;">
+            <div style="padding: 2px 2px 10px 2px;">
+              <div class="settings-section-head">Startup &amp; Windows</div>
+            </div>
+            <div class="notion-setting-group">
+            <!-- 4. Open on Windows Startup -->
+            <div class="notion-setting-row" id="row_autostart">
+              <div class="setting-text-col">
+                <div class="setting-title">Start DualClip with Windows</div>
+                <div class="setting-caption">Open DualClip automatically when you sign in.</div>
+              </div>
+              <div class="st-toggle" id="stAutostartToggle" onclick="toggleAutostartSetting(this)"><div class="toggle-knob"></div></div>
+            </div>
+            <!-- Toast Notifications -->
+            <div class="notion-setting-row" id="row_toasts_enabled">
+              <div class="setting-text-col">
+                <div class="setting-title">Pop-up Messages</div>
+                <div class="setting-caption">Show small confirmations when copying or moving clips</div>
+              </div>
+              <div class="st-toggle on" id="stToastsToggle" onclick="toggleToastsSetting(this)"><div class="toggle-knob"></div></div>
+            </div>
+            <!-- Updates: Unified Row (Auto-check toggle + Status + Check button) -->
+            <div class="notion-setting-row" id="row_auto_update_check">
+              <div class="setting-text-col">
+                <div class="setting-title">Updates <span style="font-family: var(--font-mono); font-weight:400; font-size:11px; color: var(--text-muted);">1.0.0</span></div>
+                <div class="setting-caption">Auto-check quietly on startup</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:12px; flex-shrink:0;">
+                <span id="aboutBannerArea" style="font-size:11px; color: var(--text-sub); white-space:nowrap;"></span>
+                <button id="aboutCheckBtn" class="btn-sm" onclick="onAboutCheckClick()">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  <span id="aboutCheckBtnText">Check</span>
+                </button>
+                <div class="st-toggle" id="aboutAutoToggle" title="Auto-check for updates on startup" onclick="toggleAutoUpdateCheckSetting(this)"><div class="toggle-knob"></div></div>
+              </div>
+            </div>
+            </div>
+          </div>
+
+          <!-- Section 3: About DualClip -->
+          <div class="settings-section" id="aboutDualClipSection" style="padding: 0; gap: 0; overflow: visible; background: transparent; border: none; box-shadow: none;">
+            <div class="notion-setting-group">
+            <div class="notion-setting-row">
+              <div class="setting-text-col">
+                <div class="setting-title">
+                  <span>About DualClip</span>
+                </div>
+                <div class="setting-caption">Built with <svg viewBox="0 0 24 24" width="9" height="9" fill="#f87171" style="vertical-align: -1px;"><path d="M12 21s-7.5-4.9-9.7-9.2C.7 8.6 2.6 5 6 5c2 0 3.4 1.1 4 2.2C10.6 6.1 12 5 14 5c3.4 0 5.3 3.6 3.7 6.8C19.5 16.1 12 21 12 21z"></path></svg> by <strong style="color: var(--text); font-weight: 600;">Maaz Baig</strong><span class="about-dot"></span>100% free &amp; private</div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0;">
+                <button class="btn-sm" title="Visit DualClip Website" onclick="openAboutLink('website')">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                  <span>Website</span>
+                </button>
+                <button class="btn-sm" id="btnLeaveTip" title="Support developer" onclick="openAboutLink('tip')">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 12 20 22 4 22 4 12"></polyline>
+                    <rect x="2" y="7" width="20" height="5"></rect>
+                    <line x1="12" y1="22" x2="12" y2="7"></line>
+                    <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
+                    <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
+                  </svg>
+                  <span>Leave a Tip</span>
+                </button>
+              </div>
+            </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 2. Theme & Style Tab -->
+        <div class="settings-content" id="tabContent_theme" style="display: none;">
+          <!-- Section 1: Visual Appearance -->
+          <div class="settings-section" style="padding: 0; gap: 0; overflow: visible; background: transparent; border: none; box-shadow: none;">
+            <div style="padding: 2px 2px 10px 2px;">
+              <div class="settings-section-head">Visual Appearance</div>
+              <div class="settings-section-sub">Change colors, contrast, and what details show under each clip</div>
+            </div>
+            <div class="notion-setting-group">
+            <div class="notion-setting-row" id="row_theme_mode">
+              <div class="setting-text-col">
+                <div class="setting-title">Theme</div>
+                <div class="setting-caption">Switch between Dark and Light</div>
+              </div>
+              <select class="st-select" id="stThemeModeSelect" onchange="switchThemeMode(this.value)">
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+              </select>
+            </div>
+
+            <div class="notion-setting-row" id="row_visual_style">
+              <div class="setting-text-col">
+                <div class="setting-title">Style</div>
+                <div class="setting-caption">Choose the look, contrast, and accent style of the window</div>
+              </div>
+              <select class="st-select" id="stStyleSelect" onchange="switchDesignStyle(this.value)">
+                <option value="linear" selected>Default</option>
+                <option value="notion">Notion</option>
+                <option value="nord">Nord</option>
+                <option value="geist">True Black</option>
+                <option value="raycast">Glass</option>
+              </select>
+            </div>
+
+            <div class="notion-setting-row" id="row_zebra">
+              <div class="setting-text-col">
+                <div class="setting-title">Alternating Row Colors</div>
+                <div class="setting-caption">Alternate row colors to make clips easier to distinguish.</div>
+              </div>
+              <div class="st-toggle" id="stZebraToggle" onclick="toggleZebraSetting(this)"><div class="toggle-knob"></div></div>
+            </div>
+
+            <div class="notion-setting-row" id="row_hide_window_border">
+              <div class="setting-text-col">
+                <div class="setting-title">Hide Window Border</div>
+                <div class="setting-caption">Hide the outer edge lines around the main window</div>
+              </div>
+              <div class="st-toggle" id="stHideWindowBorderToggle" onclick="toggleHideWindowBorderSetting(this)"><div class="toggle-knob"></div></div>
+            </div>
+
+            <div class="notion-setting-row" id="row_clip_details">
+              <div class="setting-text-col">
+                <div class="setting-title">Clip Details</div>
+                <div class="setting-caption">Choose which information appears on clip cards (source app, time, or none)</div>
+              </div>
+              <select class="st-select" id="stClipDetailsSelect" onchange="changeUnifiedClipDetails(this.value)">
+                <option value="hidden" selected>Hidden (Default)</option>
+                <option value="default">App + Time</option>
+                <option value="icon_time">App Icon + Time</option>
+                <option value="name_time">App Name + Time</option>
+                <option value="icon_only">App Icon Only</option>
+                <option value="time_only">Time Only</option>
+              </select>
+            </div>
+            <div class="notion-setting-row" id="row_label_style">
+              <div class="setting-text-col">
+                <div class="setting-title">Tag Style</div>
+                <div class="setting-caption">Choose how tags appear in the list</div>
+              </div>
+              <select class="st-select" id="stLabelStyleSelect" onchange="changeLabelStyleSetting(this.value)">
+                <option value="pill" selected>Blue Accent Pill</option>
+                <option value="gray">Compact Gray</option>
+                <option value="plain">Minimal Text</option>
+              </select>
+            </div>
+            </div>
+
+          </div>
+
+          <!-- Section 2: Text & Display -->
+          <div class="settings-section" style="padding: 0; gap: 0; overflow: visible; background: transparent; border: none; box-shadow: none;">
+            <div style="padding: 2px 2px 10px 2px;">
+              <div class="settings-section-head">Text &amp; Display</div>
+              <div class="settings-section-sub">Adjust typography zoom scale, visible lines per clip, and thumbnail height</div>
+            </div>
+            <div class="notion-setting-group">
+            <div class="notion-setting-row" id="row_line_display">
+              <div class="setting-text-col">
+                <div class="setting-title">Lines Per Clip</div>
+                <div class="setting-caption">Controls maximum visible text lines per clip before truncating</div>
+              </div>
+              <select class="st-select" id="stLinesPerClipSelect" onchange="changeLinesPerClipSetting(this.value)">
+                <option value="auto" selected>Auto</option>
+                <option value="1">1 Line</option>
+                <option value="2">2 Lines</option>
+              </select>
+            </div>
+
+            <div class="notion-setting-row" id="row_zoom">
+              <div class="setting-text-col">
+                <div class="setting-title">Main Display Zoom</div>
+                <div class="setting-caption">Scale UI elements proportionally across the application</div>
+              </div>
+              <select class="st-select" id="stZoomSelect" onchange="changeZoomSetting(this.value)">
+                <option value="100">Default</option>
+                <option value="110">Large</option>
+                <option value="125">Extra Large</option>
+              </select>
+            </div>
+
+            <div class="notion-setting-row" id="row_thumb_size">
+              <div class="setting-text-col">
+<div class="setting-title">Image Preview Size</div>
+                <div class="setting-caption">How large image previews appear in the list</div>
+              </div>
+              <select class="st-select" id="stThumbSizeSelect" onchange="setThumbSize(this.value)">
+                <option value="sm">Small</option>
+                <option value="md">Large</option>
+                </select>
+            </div>
+
+            <div class="notion-setting-row" id="row_preview_font">
+              <div class="setting-text-col">
+                <div class="setting-title">Preview Font</div>
+                <div class="setting-caption">Font used in the full preview window (front UI only for now)</div>
+              </div>
+              <select class="st-select" id="stPreviewFontSelect" onchange="changePreviewFontSetting(this.value)">
+                <option value="sans" selected>Sans (Default)</option>
+                <option value="mono">Mono</option>
+                <option value="cascadia">Cascadia</option>
+              </select>
+            </div>
+
+            <div class="notion-setting-row" id="row_grouping_mode">
+              <div class="setting-text-col">
+                <div class="setting-title">Group clips by</div>
+                <div class="setting-caption">Organize history with recency landmarks or display a clean, continuous stream</div>
+              </div>
+              <select class="st-select" id="stGroupingModeSelect" onchange="changeGroupingMode(this.value)">
+                <option value="time" selected>Time</option>
+                <option value="none">None</option>
+              </select>
+            </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 3. Window & Keys Tab (Unified Single Container) -->
+        <div class="settings-content" id="tabContent_window" style="display: none;">
+          <div class="settings-section" style="padding: 0; gap: 0; overflow: visible; background: transparent; border: none; box-shadow: none;">
+            <div style="padding: 2px 2px 10px 2px;">
+              <div class="settings-section-head">Window &amp; Shortcuts</div>
+              <div class="settings-section-sub">Configure summoning shortcuts, click actions, and window position</div>
+            </div>
+            <div class="notion-setting-group">
+              <div class="notion-setting-row" id="row_hotkey">
+                <div class="setting-text-col">
+                  <div class="setting-title">Open DualClip Shortcut</div>
+                  <div class="setting-caption">Keyboard shortcut that opens or hides the window</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                  <select id="stHotkeyInput" class="st-select" onchange="onHotkeyDropdownChanged(this.value)">
+                    <option value="Ctrl+Shift+V" selected>Ctrl + Shift + V</option>
+                    <option value="Alt+V">Alt + V</option>
+                    <option value="Win+V">Win + V</option>
+                    <option value="Alt+Shift+V">Alt + Shift + V</option>
+                    <option value="Ctrl+Alt+V">Ctrl + Alt + V</option>
+                  </select>
+                </div>
+              </div>
+              <div class="notion-setting-row" id="row_quick_number_paste">
+                <div class="setting-text-col">
+                  <div class="setting-title">Quick Number Paste (1–9)</div>
+                  <div class="setting-caption">Press 1–9 to paste recent clips directly; moves collection switching to Shift+1–9</div>
+                </div>
+                <div class="st-toggle" id="stQuickNumberPasteToggle" onclick="toggleQuickNumberPasteSetting(this)">
+                  <div class="toggle-knob"></div>
+                </div>
+              </div>
+              <div class="notion-setting-row" id="row_window_position">
+                <div class="setting-text-col">
+                  <div class="setting-title">Hotkey Window Position</div>
+                  <div class="setting-caption">Where the DualClip window appears when activated by global shortcut</div>
+                </div>
+                <select class="st-select" id="stWindowPositionSelect" onchange="applyWindowPositionSetting(this.value)">
+                  <option value="near" selected>Near Cursor</option>
+                  <option value="near_above">Near Cursor (Centered)</option>
+                  <option value="center">Center Screen</option>
+                  <option value="last">Remember Last Position</option>
+                </select>
+              </div>
+              <div class="notion-setting-row" id="row_tray_position">
+                <div class="setting-text-col">
+                  <div class="setting-title">Tray Window Position</div>
+                  <div class="setting-caption">Where the DualClip window appears when clicking the system tray icon</div>
+                </div>
+                <select class="st-select" id="stTrayPositionSelect" onchange="applyTrayPositionSetting(this.value)">
+                  <option value="center" selected>Center Screen</option>
+                  <option value="near">Near Cursor</option>
+                  <option value="last">Remember Last Position</option>
+                </select>
+              </div>
+              <div class="notion-setting-row" id="row_reset_window_size">
+                <div class="setting-text-col">
+                  <div class="setting-title">Reset Window Size</div>
+                  <div class="setting-caption">Restore default dimensions for the current mode (Compact or Standard)</div>
+                </div>
+                <button type="button" class="btn-sm st-btn-secondary" style="height: 28px; flex-shrink: 0;" onclick="resetWindowSizeCurrentMode()">Reset Size</button>
+              </div>
+            </div>
+            <div id="hotkeyWinVWarning" style="display: none; margin: 4px 0 6px 0; padding: 6px 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 6px; font-size: 11px; line-height: 1.4; color: var(--text-muted);">
+              <span style="color: var(--text); font-weight: 600;">Note:</span> Win + V is reserved by Windows Clipboard History. Disable it under <strong>Settings &rarr; System &rarr; Clipboard</strong> or pick another combo if the shortcut does not respond.
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Routing Rules & Privacy Tab -->
+        <div class="settings-content" id="tabContent_routing" style="display: none;">
+
+
+          <div class="settings-section" id="row_autosort_rules" style="padding: 0; gap: 0; overflow: visible; background: transparent; border: none; box-shadow: none;">
+            <div style="padding: 2px 2px 10px 2px;">
+              <div class="settings-section-head">Application Auto-Routing</div>
+              <div class="settings-section-sub">Automatically route newly copied items into collections by app, window title, or website domain</div>
+            </div>
+            <div class="notion-setting-group">
+              <div class="notion-setting-row notion-row-stacked">
+                <div class="setting-text-col">
+                  <div class="setting-title">Auto-Route Rules</div>
+                  <div class="setting-caption">Automatically route clips to collections by app, window title, or website domain</div>
+                </div>
+
+                <!-- Add Rule Input Bar: Row 1 = Type dropdown & Collection dropdown (equal 50/50 width), Row 2 = Browse + App name input + Add Rule -->
+                <div class="rule-input-bar rule-input-bar-stacked" id="autoSortInputBar">
+                  <div class="rule-bar-row rule-bar-row-dropdowns">
+                    <select id="newRuleType" class="st-select" onchange="onAutoSortRuleTypeChange(this.value)">
+                      <option value="process" selected>Application</option>
+                      <option value="title">Window Title</option>
+                      <option value="url">URL / Domain</option>
+                    </select>
+
+                    <select id="newRuleCollection" class="st-select rule-collection-select" onchange="handleRuleCollectionChange(this)">
+                      <!-- Dynamically populated -->
+                    </select>
+                  </div>
+
+                  <div class="rule-bar-row rule-bar-row-inputs">
+                    <button type="button" class="browse-running-apps-btn" id="newRuleBrowseBtn" onclick="openAppPicker('newRuleProcess')">
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                      <span>Browse</span>
+                    </button>
+
+                    <input type="text" id="newRuleProcess" class="st-input" placeholder="App name (e.g. Chrome or code.exe)" onkeydown="handleAutoSortRuleKeydown(event)">
+
+                    <button type="button" class="btn-action-primary" id="newRuleAddBtn" onclick="addNewAutoSortRule()">
+                      <span>Add Rule</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Active Rules List -->
+              <div class="auto-sort-rules-container" id="autoSortRulesContainer" style="display: none;">
+                <div class="rules-item-list" id="autoSortRulesList">
+                  <!-- Dynamically rendered -->
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+
+
+          <div class="settings-section" id="row_blocklist_toggle" style="padding: 0; gap: 0; overflow: visible; background: transparent; border: none; box-shadow: none;">
+            <div style="padding: 2px 2px 10px 2px;">
+              <div class="settings-section-head">Custom Application Blocklist</div>
+              <div class="settings-section-sub">Choose which applications DualClip must never read from</div>
+            </div>
+            <div class="notion-setting-group">
+              <div class="notion-setting-row">
+                <div class="setting-text-col">
+                  <div class="setting-title">Blocked Apps</div>
+                  <div class="setting-caption">DualClip won't save clips copied from these apps.</div>
+                </div>
+                <div class="st-toggle on" id="stIgnoreBlocklistToggle" onclick="toggleIgnoreBlocklistSetting(this)" style="flex-shrink: 0;"><div class="toggle-knob"></div></div>
+              </div>
+
+              <div class="notion-setting-row notion-row-stacked" id="row_blocklist_add">
+                <div class="setting-text-col">
+                  <div class="setting-title">Add Blocked App</div>
+                  <div class="setting-caption">Type a process name (e.g. slack.exe, discord.exe) or browse running apps</div>
+                </div>
+
+                <div class="rule-input-bar">
+                  <button type="button" class="browse-running-apps-btn" onclick="openAppPicker('newBlockedAppProcess')">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <span>Browse</span>
+                  </button>
+                  <input type="text" id="newBlockedAppProcess" class="st-input" placeholder="Process name (e.g. slack.exe, discord.exe)" onkeydown="handleBlockedAppKeydown(event)">
+                  <button type="button" class="btn-action-primary" onclick="addNewBlockedApp()">
+                    <span>Add App</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="notion-setting-row notion-row-chips" id="blockedAppsContainer" style="display: none;">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+          </div>
+
+
+          <!-- Password Managers & Authenticators (Standalone Container) -->
+          <div class="settings-section" id="row_ignore_passwords" style="padding: 0; gap: 0; overflow: visible; background: transparent; border: none; box-shadow: none;">
+            <div class="notion-setting-group">
+              <div class="notion-setting-row">
+                <div class="setting-text-col">
+                  <div class="setting-title">Password Managers &amp; Authenticators</div>
+                  <div class="setting-caption">Automatically block copying credentials from Bitwarden, 1Password, KeePass, LastPass, Dashlane, and Windows Security</div>
+                </div>
+                <div class="st-toggle on" id="stIgnorePasswordsToggle" onclick="toggleIgnorePasswordsSetting(this)" style="flex-shrink: 0;"><div class="toggle-knob"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Screen Capture Protection (Standalone Container) -->
+          <div class="settings-section" id="row_screen_capture_protection" style="padding: 0; gap: 0; overflow: visible; background: transparent; border: none; box-shadow: none;">
+            <div class="notion-setting-group">
+              <div class="notion-setting-row" id="row_prevent_screen_capture">
+                <div class="setting-text-col">
+                  <div class="setting-title">Prevent Screen Capture</div>
+                  <div class="setting-caption">Hides DualClip from screen recordings, screen shares, and screenshots. Automatically pauses during Remote Desktop sessions.</div>
+                </div>
+                <div class="st-toggle" id="stPreventScreenCaptureToggle" onclick="togglePreventScreenCaptureSetting(this)" style="flex-shrink: 0;"><div class="toggle-knob"></div></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 6. Storage & Expiry Tab -->
+        <div class="settings-content" id="tabContent_storage" style="display: none;">
+          <!-- Section 1: Storage Overview -->
+          <div class="settings-section" id="section_storage_glance" style="padding: 0; gap: 0; overflow: visible; background: transparent; border: none; box-shadow: none;">
+            <div style="padding: 2px 2px 10px 2px;">
+              <div class="settings-section-head">Storage Overview</div>
+              <div class="settings-section-sub">Space used by saved clips and images</div>
+            </div>
+
+            <div class="notion-setting-group storage-glance-group">
+              <div class="storage-meter-grid">
+                <div class="storage-metric-box">
+                  <div class="storage-metric-label">
+                    <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                    <span>Total Storage</span>
+                  </div>
+                  <div class="storage-metric-val" id="storageTotalSize">0 KB</div>
+                  <div class="storage-metric-sub" id="storageTotalCount">0 clips stored</div>
+                </div>
+
+                <div class="storage-metric-box">
+                  <div class="storage-metric-label">
+                    <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    <span>Content Types</span>
+                  </div>
+                  <div class="storage-metric-val" id="storageTextClips" style="font-size: 13px;">0 text &bull; 0 images</div>
+                  <div class="storage-metric-sub" id="storageDbSize">Database: 0 KB</div>
+                </div>
+
+                <div class="storage-metric-box">
+                  <div class="storage-metric-label">
+                    <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    <span>Protected Clips</span>
+                  </div>
+                  <div class="storage-metric-val" id="storageProtectedCount">0</div>
+                  <div class="storage-metric-sub">Pinned, favorite &amp; saved</div>
+                </div>
+              </div>
+
+              <div class="storage-glance-divider">
+                <span>Usage</span>
+              </div>
+
+              <div class="storage-meter-grid">
+                <div class="storage-metric-box">
+                  <div class="storage-metric-label">
+                    <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    <span>Clipboard Copies</span>
+                  </div>
+                  <div class="storage-metric-val" id="glanceCopiedVal">0</div>
+                  <div class="storage-metric-sub">all-time total</div>
+                </div>
+
+                <div class="storage-metric-box">
+                  <div class="storage-metric-label">
+                    <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                    <span>History Pastes</span>
+                  </div>
+                  <div class="storage-metric-val" id="glancePastesVal">0</div>
+                  <div class="storage-metric-sub">all-time total</div>
+                </div>
+
+                <div class="storage-metric-box">
+                  <div class="storage-metric-label">
+                    <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    <span>Time Saved</span>
+                  </div>
+                  <div class="storage-metric-val" id="glanceTimeSavedVal" style="color: var(--accent);">0 mins</div>
+                  <div class="storage-metric-sub">~3.2s × pastes</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: History Retention & Capacity -->
+          <div class="settings-section" style="padding: 0; gap: 0; overflow: visible; background: transparent; border: none; box-shadow: none;">
+            <div style="padding: 2px 2px 10px 2px;">
+              <div class="settings-section-head">History Storage &amp; Limits</div>
+              <div class="settings-section-sub">Control how much history is kept and how quickly old clips are removed</div>
+            </div>
+            <div class="notion-setting-group">
+              <div class="notion-setting-row" id="row_max_clips">
+                <div class="setting-text-col">
+                  <div class="setting-title">Max Saved Clips</div>
+                  <div class="setting-caption">Automatically delete older unsaved items to keep the app fast</div>
+                </div>
+                <select class="st-select" id="stMaxClipsSelect" onchange="changeMaxClipsSetting(this.value)">
+                  <option value="500" selected>500</option>
+                  <option value="2000">2,000</option>
+                  <option value="10000">10,000</option>
+                  <option value="50000">Unlimited</option>
+                </select>
+              </div>
+              <div class="notion-setting-row" id="row_auto_expire">
+                <div class="setting-text-col">
+                  <div class="setting-title">Auto-Delete Old Clips</div>
+                  <div class="setting-caption">Automatically remove unpinned and unsaved clips older than the selected age</div>
+                </div>
+                <select class="st-select" id="stAutoExpireSelect" onchange="changeAutoExpireSetting(this.value)">
+                  <option value="0" selected>Never</option>
+                  <option value="1">24 Hours</option>
+                  <option value="7">7 Days</option>
+                  <option value="30">30 Days</option>
+                  <option value="90">90 Days</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Database Maintenance & Backup -->
+          <div class="settings-section" style="padding: 0; gap: 0; overflow: visible; background: transparent; border: none; box-shadow: none;">
+            <div style="padding: 2px 2px 10px 2px;">
+              <div class="settings-section-head">Storage &amp; Data Management</div>
+              <div class="settings-section-sub">Export clips to a file, merge one back in, or clear history</div>
+            </div>
+            <div class="notion-setting-group">
+              <div class="notion-setting-row" id="row_backup_db">
+                <div class="setting-text-col">
+                  <div class="setting-title">Export &amp; Import Clips</div>
+                  <div class="setting-caption">Save your clips to a file, or load them back later</div>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <button type="button" class="btn-sm st-btn-secondary" style="height: 28px; flex-shrink: 0;" onclick="openExportClipsModal()">Export Clips...</button>
+                  <button type="button" class="btn-sm st-btn-secondary" style="height: 28px; flex-shrink: 0;" onclick="importClipsFromFile()">Import Clips...</button>
+                </div>
+              </div>
+              <div class="notion-setting-row" id="row_clear_history">
+                <div class="setting-text-col">
+                  <div class="setting-title">Clear Clipboard History</div>
+                  <div class="setting-caption">Permanently delete saved clips and images, picking exactly what to remove</div>
+                </div>
+                <button type="button" class="btn-sm st-btn-secondary storage-clear-btn" style="height: 28px; flex-shrink: 0;" onclick="confirmClearAll()">Clear History...</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7. Shortcuts Tab -->
+        <div class="settings-content" id="tabContent_shortcuts" style="display: none;">
+          <div class="settings-section" style="padding: 0; gap: 0; overflow: visible; background: transparent; border: none; box-shadow: none;">
+            <div style="padding: 2px 2px 10px 2px;">
+              <div class="settings-section-head">Keyboard Shortcuts Reference</div>
+              <div class="settings-section-sub">Every global and in-window shortcut DualClip responds to</div>
+            </div>
+            <div class="shortcuts-guide-container">
+              <!-- 1. Global Activation & Ditto Gestures -->
+              <div class="shortcut-category-card">
+                <div class="shortcut-category-header">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                  <span>Opening the Window &amp; Basic Keys</span>
+                </div>
+                <div class="shortcut-item-row">
+                  <div class="shortcut-desc">Open / toggle DualClip window</div>
+                  <div class="shortcut-keys" id="scGuideToggle"><kbd class="st-keycap">Ctrl</kbd> + <kbd class="st-keycap">Shift</kbd> + <kbd class="st-keycap">V</kbd></div>
+                </div>
+                <div class="shortcut-item-row">
+                  <div class="shortcut-desc">Auto-paste highlighted clip and close window</div>
+                  <div class="shortcut-keys" id="scGuideRelease"><span class="shortcut-meta">Release</span> <kbd class="st-keycap">Ctrl</kbd> + <kbd class="st-keycap">Shift</kbd></div>
+                </div>
+              </div>
+
+              <!-- 2. Pasting, Preview & Organization -->
+              <div class="shortcut-category-card">
+                <div class="shortcut-category-header">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                  <span>Pasting &amp; Clip Actions</span>
+                </div>
+                <div class="shortcut-item-row">
+                  <div class="shortcut-desc">Paste Selected Clip</div>
+                  <div class="shortcut-keys"><kbd class="st-keycap">&#8629; Enter</kbd></div>
+                </div>
+                <div class="shortcut-item-row">
+                  <div class="shortcut-desc">Paste and Delete</div>
+                  <div class="shortcut-keys"><kbd class="st-keycap">Ctrl</kbd> + <kbd class="st-keycap">&#8629; Enter</kbd></div>
+                </div>
+                <div class="shortcut-item-row">
+                  <div class="shortcut-desc">Open Move to Collection dialog</div>
+                  <div class="shortcut-keys"><kbd class="st-keycap">Ctrl</kbd> + <kbd class="st-keycap">D</kbd></div>
+                </div>
+                <div class="shortcut-item-row">
+                  <div class="shortcut-desc">Switch collection (1 = All Clips, 2 = Favorites)</div>
+                  <div class="shortcut-keys"><kbd class="st-keycap">1</kbd>–<kbd class="st-keycap">9</kbd></div>
+                </div>
+                <div class="shortcut-item-row">
+                  <div class="shortcut-desc">Pin / Unpin to Top</div>
+                  <div class="shortcut-keys"><kbd class="st-keycap">Ctrl</kbd> + <kbd class="st-keycap">B</kbd></div>
+                </div>
+                <div class="shortcut-item-row">
+                  <div class="shortcut-desc">Favorite / Star Clip</div>
+                  <div class="shortcut-keys"><kbd class="st-keycap">Ctrl</kbd> + <kbd class="st-keycap">S</kbd></div>
+                </div>
+                <div class="shortcut-item-row">
+                  <div class="shortcut-desc">Toggle Side Preview sidebar</div>
+                  <div class="shortcut-keys"><kbd class="st-keycap">Ctrl</kbd> + <kbd class="st-keycap">Q</kbd> <span class="shortcut-or">or</span> <kbd class="st-keycap">F8</kbd></div>
+                </div>
+                <div class="shortcut-item-row">
+                  <div class="shortcut-desc">Preview and Edit…</div>
+                  <div class="shortcut-keys"><kbd class="st-keycap">Space</kbd></div>
+                </div>
+                <div class="shortcut-item-row">
+                  <div class="shortcut-desc">Set / Edit Label</div>
+                  <div class="shortcut-keys"><kbd class="st-keycap">Ctrl</kbd> + <kbd class="st-keycap">T</kbd> <span class="shortcut-or">or</span> <kbd class="st-keycap">F2</kbd></div>
+                </div>
+                <div class="shortcut-item-row">
+                  <div class="shortcut-desc">Delete Clip</div>
+                  <div class="shortcut-keys"><kbd class="st-keycap">Del</kbd></div>
+                </div>
+              </div>
+
+              <!-- 3. Clipboard Transforms & Fast Copy -->
+              <div class="shortcut-category-card">
+                <div class="shortcut-category-header">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  <span>Clipboard Copy Transforms</span>
+                </div>
+                <div class="shortcut-item-row">
+                  <div class="shortcut-desc">Copy exactly as-is, with a quick flash</div>
+                  <div class="shortcut-keys"><kbd class="st-keycap">Ctrl</kbd> + <kbd class="st-keycap">C</kbd></div>
+                </div>
+                <div class="shortcut-item-row">
+                  <div class="shortcut-desc">Copy as simple text (removes formatting and extra spaces)</div>
+                  <div class="shortcut-keys"><kbd class="st-keycap">Ctrl</kbd> + <kbd class="st-keycap">Shift</kbd> + <kbd class="st-keycap">C</kbd></div>
+                </div>
+              </div>
+
+              <!-- 4. Navigation & Window Controls -->
+              <div class="shortcut-category-card">
+                <div class="shortcut-category-header">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+                  <span>Navigation &amp; Window Controls</span>
+                </div>
+                <div class="shortcut-item-row">
+                  <div class="shortcut-desc">Navigate through clipboard list</div>
+                  <div class="shortcut-keys"><kbd class="st-keycap">↑</kbd> <kbd class="st-keycap">↓</kbd></div>
+                </div>
+                <div class="shortcut-item-row">
+                  <div class="shortcut-desc">Jump straight to the top or bottom of the list</div>
+                  <div class="shortcut-keys"><kbd class="st-keycap">Home</kbd> / <kbd class="st-keycap">End</kbd></div>
+                </div>
+                <div class="shortcut-item-row">
+                  <div class="shortcut-desc">Jump a page up or down</div>
+                  <div class="shortcut-keys"><kbd class="st-keycap">PgUp</kbd> / <kbd class="st-keycap">PgDn</kbd></div>
+                </div>
+                <div class="shortcut-item-row">
+                  <div class="shortcut-desc">Open Settings</div>
+                  <div class="shortcut-keys"><kbd class="st-keycap">Ctrl</kbd> + <kbd class="st-keycap">,</kbd></div>
+                </div>
+                <div class="shortcut-item-row">
+                  <div class="shortcut-desc">Focus Search</div>
+                  <div class="shortcut-keys"><kbd class="st-keycap">Ctrl</kbd> + <kbd class="st-keycap">F</kbd></div>
+                </div>
+                <div class="shortcut-item-row">
+                  <div class="shortcut-desc">Close DualClip window or dismiss active modal / search filter</div>
+                  <div class="shortcut-keys"><kbd class="st-keycap">Esc</kbd></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Right-Click Context Menu -->
+  <div id="contextMenu" class="context-menu">
+    <div class="menu-item" onclick="contextAction('paste')">
+      <div class="menu-item-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+        <span id="ctxPasteLabel">Paste</span>
+      </div>
+    </div>
+
+    <div class="menu-item" onclick="contextAction('copy')">
+      <div class="menu-item-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        <span id="ctxCopyLabel">Copy</span>
+      </div>
+    </div>
+
+    <div class="menu-item" onclick="contextAction('preview')">
+      <div class="menu-item-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+        <span id="ctxPreviewLabel">Preview and Edit…</span>
+      </div>
+    </div>
+
+    <div id="ctxCopyPlain" class="menu-item" onclick="contextAction('copy_plain')">
+      <div class="menu-item-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="10" y1="12" x2="20" y2="12"></line><line x1="6" y1="17" x2="20" y2="17"></line></svg>
+        <span>Copy as Plain Text</span>
+      </div>
+    </div>
+
+    <div class="menu-item" onclick="contextAction('paste_delete')" id="ctxPasteDelete">
+      <div class="menu-item-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg>
+        <span>Paste and Delete</span>
+      </div>
+    </div>
+
+    <div id="ctxMergeClips" class="menu-item" onclick="contextAction('merge')" style="display: none;">
+      <div class="menu-item-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 21V9a9 9 0 0 0 9 9"></path></svg>
+        <span>Merge Clips</span>
+      </div>
+    </div>
+
+    <div id="ctxTransformMenu" class="menu-item has-submenu">
+      <div class="menu-item-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5"></path><polyline points="18 2 12 7 18 12"></polyline><path d="M18 2l-4 5 5 4"></path></svg>
+        <span>Transform &amp; Paste</span>
+      </div>
+      <span class="tray-submenu-arrow"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+      <div class="submenu">
+        <div class="menu-item" onclick="contextTransform('trimmed')"><span>Remove Extra Spaces</span></div>
+        <div class="menu-item" onclick="contextTransform('single_line')"><span>Join Into One Line</span></div>
+        <div class="menu-divider"></div>
+        <div class="menu-item" onclick="contextTransform('upper')"><span>UPPERCASE</span></div>
+        <div class="menu-item" onclick="contextTransform('lower')"><span>lowercase</span></div>
+        <div class="menu-item" onclick="contextTransform('title')"><span>Title Case</span></div>
+        <div class="menu-divider"></div>
+        <div class="menu-item" onclick="contextTransform('camel')"><span>camelCase</span></div>
+        <div class="menu-item" onclick="contextTransform('snake')"><span>snake_case</span></div>
+        <div class="menu-item" onclick="contextTransform('kebab')"><span>kebab-case</span></div>
+        <div class="menu-item has-submenu">
+          <div class="menu-item-left"><span>More</span></div>
+          <span class="tray-submenu-arrow"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+          <div class="submenu">
+            <div class="menu-item" onclick="contextTransform('formatJson')"><span>Tidy Up Data (JSON)</span></div>
+            <div class="menu-item" onclick="contextTransform('minifyJson')"><span>Shrink Data to One Line</span></div>
+            <div class="menu-item" onclick="contextTransform('encodeUrl')"><span>Make Link-Safe</span></div>
+            <div class="menu-item" onclick="contextTransform('decodeUrl')"><span>Restore Link Text</span></div>
+            <div class="menu-divider"></div>
+            <div class="menu-item" onclick="contextTransform('dedupe')"><span>Delete Repeated Lines</span></div>
+            <div class="menu-item" onclick="contextTransform('sort')"><span>Sort Lines A–Z</span></div>
+            <div class="menu-item" onclick="contextTransform('joinComma')"><span>Join Lines with Commas</span></div>
+            <div class="menu-divider"></div>
+            <div class="menu-item" onclick="contextTransform('slug')"><span>Make Web Address Text</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="ctxOpenUrl" class="menu-item" onclick="contextAction('open_url')" style="display: none;">
+      <div class="menu-item-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+        <span>Open Link</span>
+      </div>
+    </div>
+
+    <div id="ctxCleanUrl" class="menu-item" onclick="contextAction('copy_clean_url')" style="display: none;">
+      <div class="menu-item-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path><path d="M12 2v2"></path><path d="M12 20v2"></path></svg>
+        <span>Copy Clean Link</span>
+      </div>
+    </div>
+
+    <div id="ctxRenameItem" class="menu-item" onclick="contextAction('rename')">
+      <div class="menu-item-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+        <span id="ctxRenameLabel">Rename&hellip;</span>
+      </div>
+    </div>
+
+    <div class="menu-item" onclick="contextAction('nickname')">
+      <div class="menu-item-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+        <span id="ctxNicknameLabel">Add Tags&hellip;</span>
+      </div>
+    </div>
+
+    <div class="menu-item has-submenu">
+      <div class="menu-item-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+        <span>Move to Collection</span>
+      </div>
+      <span class="tray-submenu-arrow"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+      <div class="submenu" id="ctxCollectionsSubmenu">
+        <div class="menu-item" onclick="moveToCollection('all')"><span>All Clips</span></div>
+        <div id="ctxDynamicCollections"></div>
+        <div class="menu-divider"></div>
+        <div class="menu-item" onclick="closeContextMenu(); openNewCollectionModal();"><span>+ New Collection...</span></div>
+      </div>
+    </div>
+
+    <div class="menu-divider"></div>
+
+    <div class="menu-item" onclick="contextAction('favorite')">
+      <div class="menu-item-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+        <span id="ctxFavoriteLabel">Add to Favorites</span>
+      </div>
+    </div>
+
+    <div class="menu-item" onclick="contextAction('pin')">
+      <div class="menu-item-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a1 1 0 0 0 0-2H8a1 1 0 0 0 0 2h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>
+        <span id="ctxPinLabel">Pin to Top</span>
+      </div>
+    </div>
+
+    <div class="menu-item danger" onclick="contextAction('delete')">
+      <div class="menu-item-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        <span>Delete Clip</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Collection Pill Context Menu -->
+  <div id="pillContextMenu" class="context-menu pill-context-menu">
+    <div class="menu-item" onclick="triggerPillTogglePin()">
+      <div class="menu-item-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>
+        <span id="pillMenuPinText">Pin to Front</span>
+      </div>
+    </div>
+    <div class="menu-divider"></div>
+    <div class="menu-item" onclick="triggerPillRename()">
+      <div class="menu-item-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+        <span>Rename Collection…</span>
+      </div>
+    </div>
+    <div class="menu-item" id="pillMenuMergeRow" onclick="triggerPillMerge()">
+      <div class="menu-item-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 21V9a9 9 0 0 0 9 9"></path></svg>
+        <span>Merge Collections…</span>
+      </div>
+    </div>
+    <div class="menu-item" id="pillMenuUnnestRow" style="display: none;" onclick="triggerPillUnnest()">
+      <div class="menu-item-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 14 4 9 9 4"></polyline><path d="M20 20v-7a4 4 0 0 0-4-4H4"></path></svg>
+        <span>Move to Top Level</span>
+      </div>
+    </div>
+    <div class="menu-item" id="pillMenuAutoSortRow" onclick="triggerPillAutoSortMapping()">
+      <div class="menu-item-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
+        <span>Auto-Route…</span>
+      </div>
+    </div>
+    <div class="menu-divider"></div>
+    <div class="menu-item danger" onclick="triggerPillDelete()">
+      <div class="menu-item-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+        <span>Delete Collection</span>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- Merge Collection Modal -->
+  <div id="mergeCollectionModal" class="modal-overlay" onclick="closeMergeCollectionModal(event)" style="display: none; z-index: 10000;">
+    <div class="modal-card" style="width: 380px; max-width: 92vw; padding: 0;" onclick="event.stopPropagation()">
+      <div class="settings-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 21V9a9 9 0 0 0 9 9"></path></svg>
+          <span>Merge Collection</span>
+        </div>
+        <button class="tb-btn close" onclick="closeMergeCollectionModal()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
+      <div style="padding: 14px 16px 10px 16px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="font-size: 11.5px; color: var(--text-sub);">
+          Merge <strong id="mergeSourceCollectionName" style="color: var(--text);"></strong> into:
+        </div>
+        <select id="mergeTargetCollectionSelect" class="st-select" style="width: 100%;">
+          <!-- Options populated dynamically -->
+        </select>
+        <div style="font-size: 11px; color: var(--text-sub); line-height: 1.4;">
+          All clips will move to the selected collection, and the source collection will be removed.
+        </div>
+      </div>
+      <div class="settings-footer" style="justify-content: flex-end; gap: 8px;">
+        <button class="btn-sm" onclick="closeMergeCollectionModal()">Cancel</button>
+        <button class="btn-sm btn-primary" onclick="executeMergeCollection()">Merge &amp; Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Clips Modal -->
+  <div id="exportClipsModal" class="modal-overlay" onclick="closeExportClipsModal(event)" style="display: none; z-index: 10000;">
+    <div class="modal-card" style="width: 380px; max-width: 92vw; padding: 0;" onclick="event.stopPropagation()">
+      <div class="settings-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          <span>Export Clips</span>
+        </div>
+        <button class="tb-btn close" onclick="closeExportClipsModal()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
+      <div style="padding: 14px 16px 10px 16px; display: flex; flex-direction: column; gap: 10px;">
+        <div>
+          <div style="font-size: 12.5px; font-weight: 500; margin-bottom: 2px;">Choose what to include in the exported file:</div>
+          <span style="font-size: 11px; color: var(--text-sub); line-height: 1.4;">Exports as a .dualclip package (including images).</span>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 0 2px 0; border-bottom: 1px solid var(--border-subtle); margin-top: 2px;">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; user-select: none;">
+            <input type="checkbox" id="exportSelectAll" onchange="toggleExportSelectAll(this)" style="accent-color: var(--accent); cursor: pointer; width: 14px; height: 14px;">
+            <span style="font-weight: 600;">Select All</span>
+          </label>
+          <span id="exportSelectionSummary" style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);"></span>
+        </div>
+
+        <div class="export-sections-box" style="margin-top: 2px;">
+          <!-- 1. Main History (Parent) -->
+          <label class="clear-pill-row" id="exportScopeUnorganizedRow">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" id="exportScopeUnorganized" checked onchange="onExportScopeChanged()" style="accent-color: var(--accent); cursor: pointer; width: 14px; height: 14px;" />
+              <span class="clear-row-title" style="font-size: 12px; font-weight: 500;">Main History</span>
+            </div>
+            <span id="exportBadgeUnorganized" class="clear-row-badge" style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);"></span>
+          </label>
+
+          <!-- Indented Sub-items under Unorganized (Images, Pinned, Favorites) -->
+          <div id="exportUnorganizedSubList" style="display: flex; flex-direction: column; gap: 2px; padding-left: 20px;">
+            <label class="clear-pill-row" id="exportScopeImagesRow" style="font-size: 11.5px; opacity: 0.95;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="exportScopeImages" checked onchange="onExportScopeChanged()" style="accent-color: var(--accent); cursor: pointer; width: 13px; height: 13px;" />
+                <span class="clear-row-title">Copied Images &amp; Screenshots</span>
+              </div>
+              <span id="exportBadgeImages" class="clear-row-badge" style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);"></span>
+            </label>
+
+            <label class="clear-pill-row" id="exportScopePinnedRow" style="font-size: 11.5px; opacity: 0.95;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="exportScopePinned" onchange="onExportScopeChanged()" style="accent-color: var(--accent); cursor: pointer; width: 13px; height: 13px;" />
+                <span class="clear-row-title">Pinned</span>
+              </div>
+              <span id="exportBadgePinned" class="clear-row-badge" style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);"></span>
+            </label>
+
+            <label class="clear-pill-row" id="exportScopeStarredRow" style="font-size: 11.5px; opacity: 0.95;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="exportScopeStarred" onchange="onExportScopeChanged()" style="accent-color: var(--accent); cursor: pointer; width: 13px; height: 13px;" />
+                <span class="clear-row-title">Favorites</span>
+              </div>
+              <span id="exportBadgeStarred" class="clear-row-badge" style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);"></span>
+            </label>
+          </div>
+
+          <!-- 2. Collections Master Row (at the bottom) -->
+          <div id="exportScopeCollectionsRow" class="clear-pill-row" style="display: none; margin-top: 2px;">
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; cursor: pointer;">
+                <input type="checkbox" id="exportScopeCollections" onchange="toggleExportCollectionsCheck(this.checked)" style="accent-color: var(--accent); cursor: pointer; width: 14px; height: 14px;" />
+                <span class="clear-row-title" style="font-size: 12px; font-weight: 500;">Collections</span>
+              </label>
+              <button type="button" class="expand-arrow-btn" id="exportCollectionsMasterArrow" onclick="toggleExportCollectionsExpand(event)" title="Toggle Collections" style="margin-left: 2px;">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+            <span id="exportBadgeCollections" class="clear-row-badge" style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);">0 selected</span>
+          </div>
+          <div id="exportCollectionsList" style="display: none; max-height: 180px; overflow-y: auto; flex-direction: column; gap: 2px; padding-left: 20px;">
+            <!-- Checkbox rows populated dynamically -->
+          </div>
+        </div>
+      </div>
+      <div class="settings-footer" style="justify-content: flex-end; gap: 8px;">
+        <button class="btn-sm" onclick="closeExportClipsModal()">Cancel</button>
+        <button class="btn-sm btn-primary" id="exportClipsConfirmBtn" onclick="submitExportClipsModal()">Export</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rename Collection Modal -->
+  <div id="renameCollectionModal" class="modal-overlay" onclick="closeRenameCollectionModal(event)" style="display: none; z-index: 10000;">
+    <div class="modal-card" style="width: 360px; max-width: 92vw; padding: 0;" onclick="event.stopPropagation()">
+      <div class="settings-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+          <span>Rename Collection</span>
+        </div>
+        <button class="tb-btn close" onclick="closeRenameCollectionModal()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
+      <div style="padding: 14px 16px 10px 16px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="font-size: 11.5px; color: var(--text-sub);">Create a Collection</div>
+        <input type="text" id="renameCollectionInput" class="st-input" style="width: 100%; box-sizing: border-box; font-size: 12px; padding: 6px 10px;" onkeydown="handleRenameCollectionKeydown(event)" />
+      </div>
+      <div class="settings-footer" style="justify-content: flex-end; gap: 8px;">
+        <button type="button" class="btn-sm" onclick="closeRenameCollectionModal()">Cancel</button>
+        <button type="button" class="btn-sm btn-primary" onclick="executeRenameCollection()">Save</button>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- Dedicated Full Preview Modal -->
+  <div id="previewModal" class="modal-overlay preview-modal-overlay" style="display: none;" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()">
+    <div class="modal-card preview-card" onclick="event.stopPropagation()">
+      <div class="settings-header" id="prevHeader">
+        <span id="prevTitle">Item Details</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button id="prevWrapToggleBtn" class="btn-sm" style="font-size: 11px; padding: 2px 8px; background: transparent; border: 1px solid var(--border);" onclick="togglePreviewWrap()">Wrap: ON</button>
+          <button class="tb-btn close" onclick="closePreviewModal(event, true)" data-action="close-preview" title="Close (Esc)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+        </div>
+      </div>
+      <textarea id="prevContent" class="preview-body" style="width: 100%; border: none; outline: none; resize: none; margin: 0; box-sizing: border-box;"></textarea>
+      <div id="prevImageContainer" class="preview-body" style="display: none;"></div>
+      <div class="settings-footer" id="prevFooter" style="justify-content: space-between; align-items: center;">
+        <span id="prevStats" style="font-size: 11px; color: var(--text-sub); align-self: center;">0 characters &bull; 0 words</span>
+        <div id="prevZoomGroup" class="zoom-slim-group" style="display: none;">
+          <button class="zoom-slim-btn" id="prevZoomOutBtn" title="Zoom Out">&minus;</button>
+          <span class="dock-indicator zoom-slim-label" id="prevZoomLabel" title="Click to reset to Fit" style="font-family: var(--font-mono, monospace); text-align: center; cursor: pointer; color: var(--text); user-select: none;">Fit</span>
+          <button class="zoom-slim-btn" id="prevZoomInBtn" title="Zoom In">+</button>
+          <span class="zoom-slim-sep"></span>
+          <button class="zoom-slim-btn zoom-slim-mode" id="prevOneToOneBtn" title="Show image at 100% (1:1 actual pixels)">1:1</button>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button id="prevCopyBtn" class="btn-sm" onclick="copyPreviewContent()">Copy</button>
+          <button id="prevSaveBtn" class="btn-sm" onclick="savePreviewClip()" style="display: none;">Save</button>
+          <button class="btn-sm close-btn" onclick="closePreviewModal(event, true)" data-action="close-preview">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rename Modal -->
+  <div id="renameModal" class="modal-overlay" onclick="closeRenameModal(event)" style="display: none;">
+    <div class="modal-card" style="width: 420px; max-width: 92vw; padding: 0;" onclick="event.stopPropagation()">
+      <div class="settings-header">
+        <span id="renameModalTitle">Rename Clip</span>
+        <button class="tb-btn close" onclick="closeRenameModal()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
+      <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 12px;">
+        <label id="renameModalDescLabel" for="renameTitleInput" style="font-size: 12px; color: var(--text-sub);">Give this clip a custom title for quick recognition and search.</label>
+        <div style="position: relative;">
+          <input id="renameTitleInput" type="text" class="input-modern" placeholder="e.g. Stripe Live Key, Production DB Password" maxlength="120" autocomplete="off" spellcheck="false" style="width: 100%; box-sizing: border-box;">
+        </div>
+      </div>
+      <div class="settings-footer" style="justify-content: space-between;">
+        <button id="renameClearBtn" class="btn-sm" onclick="executeClearRename()">Clear Title</button>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-sm" onclick="closeRenameModal()">Cancel</button>
+          <button id="renameSaveBtn" class="btn-sm btn-primary" onclick="executeSaveRename()">Save Title</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tag Modal -->
+  <div id="nicknameModal" class="modal-overlay" onclick="closeNicknameModal(event)" style="display: none;">
+    <div class="modal-card" style="width: 440px; max-width: 92vw; padding: 0;" onclick="event.stopPropagation()">
+      <div class="settings-header">
+        <span id="nicknameModalTitle">Add Tags</span>
+        <button class="tb-btn close" onclick="closeNicknameModal()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
+      <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 12px;">
+        <div id="tagModalBatchTabs" class="tag-modal-batch-tabs" style="display: none;">
+          <button type="button" class="tag-batch-tab active" id="tagBatchAddTab" onclick="setTagBatchMode('add')">Add Tags</button>
+          <button type="button" class="tag-batch-tab" id="tagBatchRemoveTab" onclick="setTagBatchMode('remove')">Remove Tags</button>
+        </div>
+        <label id="tagModalDescLabel" for="nicknameInput" style="font-size: 12px; color: var(--text-sub);">Organize this clip with tags to quickly find and filter related clips.</label>
+        
+        <div class="tag-input-wrapper" style="position: relative;">
+          <div class="tag-chips-container" id="tagModalChipsContainer" onclick="focusTagInput()">
+            <div id="tagModalChipsList" class="tag-modal-chips-list"></div>
+            <input id="nicknameInput" type="text" class="tag-chip-inline-input" placeholder="Add tag..." maxlength="40" autocomplete="off" spellcheck="false">
+          </div>
+          <div id="tagAutocomplete" class="tag-autocomplete" style="display: none;" role="listbox"></div>
+          <div class="tag-input-hint">
+            <span>Type tag and press <kbd>Enter</kbd> or <kbd>,</kbd></span>
+            <span id="tagCountHint">0/10 tags</span>
+          </div>
+        </div>
+
+        <div id="nicknameRecentTagsContainer" class="recent-tags-section" style="display: none;">
+          <div class="recent-tags-header">Recent Tags</div>
+          <div id="nicknameRecentTagsList" class="recent-tags-chips"></div>
+        </div>
+      </div>
+      <div class="settings-footer" style="justify-content: space-between;">
+        <button id="nicknameClearBtn" class="btn-sm" onclick="executeClearNickname()">Remove All Tags</button>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-sm" onclick="closeNicknameModal()">Cancel</button>
+          <button id="nicknameSaveBtn" class="btn-sm btn-primary" onclick="executeSaveNickname()">Save Tags</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manage Tags Modal -->
+  <div id="manageTagsModal" class="modal-overlay" onclick="closeManageTagsModal(event)" style="display: none;">
+    <div class="modal-card" style="width: 480px; max-width: 92vw; padding: 0;" onclick="event.stopPropagation()">
+      <div class="settings-header">
+        <span>Manage Tags</span>
+        <button class="tb-btn close" onclick="closeManageTagsModal()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
+      <div style="padding: 14px 18px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="font-size: 12px; color: var(--text-sub);">All active tags in your clipboard history. You can filter, rename, or delete tags everywhere.</div>
+        <div class="manage-tags-box">
+          <div id="manageTagsList" class="manage-tags-list"></div>
+        </div>
+      </div>
+      <div class="settings-footer" style="justify-content: flex-end;">
+        <button class="btn-sm" onclick="closeManageTagsModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clear History Confirmation Modal -->
+  <div id="clearConfirmModal" class="modal-overlay" onclick="closeClearConfirmModal(event)" style="display: none;">
+    <div class="modal-card" style="width: 450px; padding: 0; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 20px 48px rgba(0, 0, 0, 0.75);" onclick="event.stopPropagation()">
+      <div class="settings-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            <line x1="10" y1="11" x2="10" y2="17"></line>
+            <line x1="14" y1="11" x2="14" y2="17"></line>
+          </svg>
+          <span id="clearModalTitle" style="font-weight: 600;">Clear History</span>
+        </div>
+        <button class="tb-btn close" onclick="closeClearConfirmModal()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
+      <div style="padding: 16px 18px 12px 18px; color: var(--text); font-size: 13px; line-height: 1.5;">
+        <div>
+          <div id="clearModalMessage" style="font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 3px;">Select what to permanently delete:</div>
+          <span id="clearModalSubtext" style="color: var(--text-sub); font-size: 11.5px; display: block; line-height: 1.4;">Unchecked items will remain untouched in your clipboard history.</span>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0 4px 0; border-bottom: 1px solid var(--border-subtle); margin-top: 6px;">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text); cursor: pointer; user-select: none;">
+            <input type="checkbox" id="clearSelectAll" onchange="toggleClearSelectAll(this)" style="accent-color: var(--accent); cursor: pointer; width: 14px; height: 14px;">
+            <span style="font-weight: 600;">Select All</span>
+          </label>
+          <span id="clearSelectionSummary" style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);"></span>
+        </div>
+
+        <!-- Fixed Scrollable List -->
+        <div id="clearScrollableList" style="max-height: 230px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding-right: 4px; margin-top: 6px;">
+          <div class="clear-sections-box">
+            <!-- 1. Main History (Parent) -->
+            <label class="clear-pill-row">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="clearDeleteUnpinned" checked onchange="updateClearModalStats()" style="accent-color: var(--accent); cursor: pointer; width: 14px; height: 14px;">
+                <span class="clear-row-title" style="font-size: 12px; font-weight: 500;">Main History</span>
+              </div>
+              <span id="clearBadgeUnpinned" class="clear-row-badge" data-count="0" style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);">0 clips</span>
+            </label>
+
+            <!-- Indented General Sub-items (Images, Pinned, Favorites) -->
+            <div id="clearSubList" style="display: flex; flex-direction: column; gap: 2px; padding-left: 20px;">
+              <label class="clear-pill-row" style="font-size: 11.5px; opacity: 0.95;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <input type="checkbox" id="clearDeleteImages" checked onchange="updateClearModalStats()" style="accent-color: var(--accent); cursor: pointer; width: 13px; height: 13px;">
+                  <span class="clear-row-title">Copied Images &amp; Screenshots</span>
+                </div>
+                <span id="clearBadgeImages" class="clear-row-badge" data-count="0" style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);">0 clips</span>
+              </label>
+              <label class="clear-pill-row" style="font-size: 11.5px; opacity: 0.95;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <input type="checkbox" id="clearDeletePinned" onchange="updateClearModalStats()" style="accent-color: var(--accent); cursor: pointer; width: 13px; height: 13px;">
+                  <span class="clear-row-title">Pinned</span>
+                </div>
+                <span id="clearBadgePinned" class="clear-row-badge" data-count="0" style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);">0 clips</span>
+              </label>
+              <label class="clear-pill-row" style="font-size: 11.5px; opacity: 0.95;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <input type="checkbox" id="clearDeleteStarred" onchange="updateClearModalStats()" style="accent-color: var(--accent); cursor: pointer; width: 13px; height: 13px;">
+                  <span class="clear-row-title">Favorites</span>
+                </div>
+                <span id="clearBadgeStarred" class="clear-row-badge" data-count="0" style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);">0 clips</span>
+              </label>
+            </div>
+
+            <!-- 2. Collections (Master Row with Expand Arrow) -->
+            <div id="clearCollectionsMasterRow" class="clear-pill-row" style="display: none; margin-top: 2px;">
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0;">
+                  <input type="checkbox" id="clearDeleteCollectionsMaster" onchange="toggleCollectionsCheck(this.checked)" style="accent-color: var(--accent); cursor: pointer; width: 14px; height: 14px;">
+                  <span class="clear-row-title" style="font-size: 12px; font-weight: 500;">Collections</span>
+                </label>
+                <button type="button" class="expand-arrow-btn" id="clearCollectionsMasterArrow" onclick="toggleCollectionsExpand(event)" title="Toggle Collections" style="margin-left: 2px;">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+              </div>
+              <span class="clear-row-badge" id="clearColsMasterBadge" style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);">0 selected</span>
+            </div>
+
+            <!-- Expandable Nested Collections List -->
+            <div id="clearCollectionsList" style="display: none; flex-direction: column; gap: 2px; padding-left: 20px;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="settings-footer">
+        <button class="btn-sm clear-cancel-btn" style="border-radius: 6px;" onclick="closeClearConfirmModal()">Cancel</button>
+        <button id="clearModalConfirmBtn" class="minimal-btn-danger clear-delete-btn" style="font-size: 12px; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-weight: 600;" onclick="executeClearHistory()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Collection Confirmation Modal (Minimal) -->
+  <div id="deleteCollectionModal" class="modal-overlay" onclick="closeDeleteCollectionModal(event)" style="display: none;">
+    <div class="modal-card minimal-confirm-dialog" onclick="event.stopPropagation()">
+      <div class="minimal-confirm-body">
+        <div class="minimal-confirm-icon">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        </div>
+        <div class="minimal-confirm-text">
+          <div class="minimal-confirm-title">Delete <span id="deleteCollectionModalName"></span>?</div>
+          <div class="minimal-confirm-desc" id="deleteCollectionModalDesc">Clips will stay safe and move back to <strong>All Clips</strong>.</div>
+          <label style="display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px; cursor: pointer; user-select: none;">
+            <input type="checkbox" id="deleteCollectionWithClips" checked style="accent-color: var(--accent); cursor: pointer; width: 14px; height: 14px;" onchange="onDeleteCollectionWithClipsChanged()" />
+            <span>Also delete <span id="deleteCollectionClipCount">clips</span> in this collection</span>
+          </label>
+        </div>
+      </div>
+      <div class="minimal-confirm-actions">
+        <button type="button" class="minimal-btn-cancel" onclick="closeDeleteCollectionModal()">Cancel</button>
+        <button type="button" class="minimal-btn-danger" onclick="executeDeleteCollection()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create New Collection Modal -->
+  <div id="newCollectionModal" class="modal-overlay" onclick="closeNewCollectionModal(event)" style="display: none; z-index: 10000;">
+    <div class="modal-card" style="width: 380px; padding: 0; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 20px 48px rgba(0, 0, 0, 0.75);" onclick="event.stopPropagation()">
+      <div class="settings-header">
+        <span>Create New Collection</span>
+        <button class="tb-btn close" onclick="closeNewCollectionModal()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
+      <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 12px;">
+        <div>
+          <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text);">Collection Name</label>
+          <input type="text" id="newCollectionInput" class="st-input" placeholder="e.g. Work, Code, Personal, Templates..." style="width:100%; box-sizing:border-box;" maxlength="30" onkeydown="handleNewCollectionKeydown(event)">
+        </div>
+        <span style="color: var(--text-sub); font-size: 11.5px; line-height:1.4;">
+          Collections organize your saved clips into custom categories. You can move clips into collections via right-click or drag-and-drop.
+        </span>
+      </div>
+      <div class="settings-footer">
+        <button class="btn-sm" onclick="closeNewCollectionModal()">Cancel</button>
+        <button class="btn-sm btn-primary" onclick="submitNewCollection()">Create Collection</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Move to Collection Modal -->
+  <div id="moveCollectionModal" class="modal-overlay" onclick="closeMoveCollectionModal(event)" style="display: none; z-index: 10000;">
+    <div class="modal-card" style="width: 380px; max-width: 92vw; padding: 0; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 20px 48px rgba(0, 0, 0, 0.75);" onclick="event.stopPropagation()">
+      <div class="settings-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span>Move to Collection</span>
+        </div>
+        <button class="tb-btn close" onclick="closeMoveCollectionModal()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
+      <div style="padding: 14px 16px 10px 16px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 11.5px; color: var(--text-sub);">
+          Select destination collection using arrow keys &amp; <kbd>Enter</kbd>, <kbd>1&ndash;9</kbd>, or click:
+        </div>
+        <div class="move-sections-box">
+          <div id="moveCollectionList" class="move-collection-list" style="max-height: 250px; overflow-y: auto;">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+      <div class="settings-footer" style="justify-content: space-between;">
+        <button class="btn-sm" style="background: transparent; border: 1px dashed var(--border); color: var(--accent);" onclick="openNewCollectionFromMoveModal()">+ New Collection</button>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-sm" onclick="closeMoveCollectionModal()">Cancel</button>
+          <button class="btn-sm btn-primary" id="btnMoveCollectionDone" onclick="submitMoveCollectionModal()">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- App Picker Modal -->
+  <div id="appPickerModal" class="modal-overlay" onclick="closeAppPicker(event)" style="display: none; z-index: 10000;">
+    <div class="modal-card" style="width: 480px; max-width: 92vw; padding: 0; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 20px 48px rgba(0, 0, 0, 0.75);" onclick="event.stopPropagation()">
+      <div class="settings-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          <span>Choose an App</span>
+        </div>
+        <button class="tb-btn close" onclick="closeAppPicker()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
+      <div style="padding: 14px 16px 12px 16px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="position: relative; display: flex; align-items: center;">
+          <input type="text" id="appPickerSearch" class="st-input" placeholder="Filter running apps (e.g. Chrome, Code)..." style="width: 100%; box-sizing: border-box; padding-left: 28px;" oninput="onAppPickerSearch(this.value)" onkeydown="handleAppPickerKeydown(event)">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 9px; color: var(--text-sub); pointer-events: none;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted);">
+          Select an open app or browse for an executable:
+        </div>
+        <div id="appPickerList" class="app-picker-list" style="max-height: 360px; min-height: 240px; overflow-y: auto; border: none; background: transparent; margin-top: 4px; padding-right: 4px;">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+      <div class="settings-footer" style="justify-content: space-between;">
+        <button type="button" class="browse-running-apps-btn" onclick="browseApplicationFromExplorer()">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M10 14L21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>
+          <span>Browse from Explorer...</span>
+        </button>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button class="btn-sm app-picker-cancel-btn" onclick="closeAppPicker()">Cancel</button>
+          <button class="btn-sm app-picker-ok-btn" id="appPickerOkBtn" onclick="confirmAppPickerSelection()">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supporter Verification Modal (Honor System) -->
+  <div id="supporterPromptModal" class="modal-overlay" onclick="closeSupporterModal()" style="display: none; z-index: 10005;">
+    <div class="modal-card" style="width: 400px; max-width: 92vw; padding: 0; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 20px 48px rgba(0, 0, 0, 0.75);" onclick="event.stopPropagation()">
+      <div class="settings-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#eab308" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
+          <span style="font-weight: 600;">Support DualClip</span>
+        </div>
+        <button class="tb-btn close" onclick="closeSupporterModal()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
+      <div style="padding: 16px 20px 14px 20px; display: flex; flex-direction: column; gap: 8px; text-align: left;">
+        <div style="font-size: 13.5px; font-weight: 600; color: var(--text);">Thank you for checking out the tip page!</div>
+        <div style="font-size: 12px; color: var(--text-sub); line-height: 1.5;">
+          Were you able to leave a tip or support DualClip's development?
+        </div>
+      </div>
+      <div class="settings-footer" style="justify-content: flex-end; gap: 8px;">
+        <button type="button" class="btn-sm" onclick="confirmSupporterStatus(false)">Maybe Later</button>
+        <button type="button" class="btn-sm btn-primary" style="background: #eab308; border-color: #ca8a04; color: #000; font-weight: 600;" onclick="confirmSupporterStatus(true)">Yes, I supported! 💖</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Unclipped Info Tooltip -->
+  <div id="globalInfoTooltip" class="global-info-tooltip"></div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast">Action completed</div>
+
+  <!-- Drag-and-Drop Archive Import Overlay -->
+  <div id="dropZoneOverlay" class="drop-zone-overlay" aria-hidden="true">
+    <div class="drop-zone-card">
+      <div class="drop-zone-icon">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+      </div>
+      <div class="drop-zone-title">Drop archive to import</div>
+      <div class="drop-zone-subtitle">Import clips, collections, and images from .dualclip or .zip</div>
+    </div>
+  </div>
+
+    <!-- DualClip Modular Frontend Scripts -->
+    <script src="js/core/settings-defaults.js?v=33"></script>
+    <script src="js/core/rpc-contracts.js?v=31"></script>
+    <script src="js/core/namespace.js?v=31"></script>
+    <script src="js/core/bridge.js?v=31"></script>
+    <script src="js/core/state.js?v=31"></script>
+    <script src="js/list/render.js?v=31"></script>
+    <script src="js/list/filters-search.js?v=30"></script>
+    <script src="js/list/filters-collections.js?v=30"></script>
+    <script src="js/list/filters.js?v=30"></script>
+    <script src="js/list/actions.js?v=31"></script>
+    <script src="js/list/sidebar-layout.js?v=31"></script>
+    <!-- Modular settings (split from settings.js 2564 -> 5 focused modules <513 each) -->
+    <script src="js/settings/settings-core.js?v=35"></script>
+    <script src="js/settings/settings-appearance.js?v=33"></script>
+    <script src="js/settings/settings-shortcuts.js?v=33"></script>
+    <script src="js/settings/settings-storage.js?v=30"></script>
+    <script src="js/settings/settings-rules.js?v=30"></script>
+    <script src="js/settings/quick-view-menu.js?v=31"></script>
+    <!-- Modular overlays (split from overlays.js 1795 lines -> 4 focused modules) -->
+    <script src="js/overlays/tooltips-toasts.js?v=30"></script>
+    <script src="js/overlays/context-menus.js?v=30"></script>
+    <script src="js/overlays/preview-lightbox.js?v=37"></script>
+    <script src="js/overlays/modals.js?v=35"></script>
+    <script src="js/overlays/milestones.js?v=30"></script>
+    <script src="js/overlays/drop-zone.js?v=30"></script>
+    <script src="js/overlays.js?v=31"></script>
+    <script src="js/core/keyboard-map.js?v=30"></script>
+    <script src="js/keyboard.js?v=34"></script>
+
+</body>
+</html>

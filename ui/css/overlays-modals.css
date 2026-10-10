@@ -1,0 +1,1958 @@
+﻿    /* Dedicated Full Preview Modal Card with Image Lightbox Support — text preview scrollable */
+    .preview-modal-overlay .modal-card,
+    .preview-card {
+      animation: none !important;
+      transition: none !important;
+      width: 560px;
+      max-width: 92vw;
+      max-height: 85vh;
+      height: auto;
+      min-height: 220px;
+      padding: 0;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Lightbox mode: windowed dialog container for image previews */
+    .preview-modal-overlay:has(.preview-image-lightbox) .preview-card,
+    .preview-modal-overlay:has(.has-lightbox-image) .preview-card {
+      width: 780px;
+      max-width: 90vw;
+      height: 82vh;
+      max-height: 85vh;
+      background: var(--card-bg);
+      box-shadow: 0 24px 56px rgba(0, 0, 0, 0.85);
+      border: 1px solid var(--border);
+    }
+    .preview-modal-overlay:has(.preview-image-lightbox) #prevHeader,
+    .preview-modal-overlay:has(.preview-image-lightbox) #prevFooter,
+    .preview-modal-overlay:has(.has-lightbox-image) #prevHeader,
+    .preview-modal-overlay:has(.has-lightbox-image) #prevFooter {
+      display: flex !important;
+    }
+    .preview-modal-overlay:has(.preview-image-lightbox) .modal-card,
+    .preview-modal-overlay:has(.has-lightbox-image) .modal-card {
+      overflow: hidden;
+    }
+
+    .preview-body:not(.has-lightbox-image),
+    #prevContent:not(.has-lightbox-image) {
+      flex: 1 1 auto;
+      min-height: 0;
+      max-height: 62vh;
+      padding: 16px;
+      overflow-y: auto !important;
+      overflow-x: hidden;
+      overscroll-behavior: contain;
+      scrollbar-gutter: stable;
+      scrollbar-width: thin !important;
+      scrollbar-color: rgba(255, 255, 255, 0.28) transparent !important;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text);
+      line-height: 1.55;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: var(--card-bg, #1e222a);
+      display: block;
+    }
+    .preview-body:not(.has-lightbox-image)::-webkit-scrollbar,
+    #prevContent:not(.has-lightbox-image)::-webkit-scrollbar {
+      display: block !important;
+      width: 6px !important;
+      height: 6px !important;
+    }
+    .preview-body:not(.has-lightbox-image)::-webkit-scrollbar-track,
+    #prevContent:not(.has-lightbox-image)::-webkit-scrollbar-track {
+      background: transparent !important;
+    }
+    .preview-body:not(.has-lightbox-image)::-webkit-scrollbar-thumb,
+    #prevContent:not(.has-lightbox-image)::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.28) !important;
+      border-radius: 6px !important;
+    }
+    .preview-body:not(.has-lightbox-image)::-webkit-scrollbar-thumb:hover,
+    #prevContent:not(.has-lightbox-image)::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.45) !important;
+    }
+    body.theme-light .preview-body:not(.has-lightbox-image)::-webkit-scrollbar-thumb,
+    [data-theme="light"] .preview-body:not(.has-lightbox-image)::-webkit-scrollbar-thumb,
+    body.theme-light #prevContent:not(.has-lightbox-image)::-webkit-scrollbar-thumb,
+    [data-theme="light"] #prevContent:not(.has-lightbox-image)::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.25) !important;
+    }
+    body.theme-light .preview-body:not(.has-lightbox-image)::-webkit-scrollbar-thumb:hover,
+    [data-theme="light"] .preview-body:not(.has-lightbox-image)::-webkit-scrollbar-thumb:hover,
+    body.theme-light #prevContent:not(.has-lightbox-image)::-webkit-scrollbar-thumb:hover,
+    [data-theme="light"] #prevContent:not(.has-lightbox-image)::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 0, 0, 0.40) !important;
+    }
+
+    /* Option B: Wrap OFF — keep modal width constrained, show smooth horizontal scroll for long unbroken lines */
+    .preview-body.wrap-off:not(.has-lightbox-image),
+    textarea#prevContent.wrap-off {
+      white-space: pre !important;
+      word-break: normal !important;
+      overflow-wrap: normal !important;
+      overflow-x: auto !important;
+      overflow-y: auto !important;
+    }
+
+    /* Image lightbox: when preview body contains a lightbox image, drop the boxy layout */
+    .preview-body:has(.preview-image-lightbox),
+    .preview-body.has-lightbox-image,
+    #prevContent:has(.preview-image-lightbox),
+    #prevContent.has-lightbox-image {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      overflow: hidden !important;
+      background: transparent !important;
+      cursor: default !important;
+      position: relative !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-height: 100% !important;
+      flex: 1 1 auto !important;
+      scrollbar-width: none !important;
+      font-family: inherit;
+      white-space: normal;
+    }
+    .preview-body:has(.preview-image-lightbox)::-webkit-scrollbar,
+    .preview-body.has-lightbox-image::-webkit-scrollbar,
+    #prevContent:has(.preview-image-lightbox)::-webkit-scrollbar,
+    #prevContent.has-lightbox-image::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+    .preview-body:has(.preview-image-lightbox):active,
+    .preview-body.has-lightbox-image:active {
+      cursor: default;
+    }
+
+    .preview-modal-overlay .preview-image-lightbox {
+      transition: opacity 0.15s ease !important;
+    }
+
+    .preview-image-lightbox {
+      display: block;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 0;
+      box-shadow: none;
+      transition: none;
+      transform-origin: center center;
+      will-change: transform;
+      user-select: none;
+      -webkit-user-drag: none;
+      image-rendering: auto;
+      image-rendering: high-quality;
+      image-rendering: -webkit-optimize-contrast;
+    }
+
+    /* When in 1:1 mode, drop the max constraints so source pixels stay 1:1 */
+    .preview-image-lightbox.is-one-to-one {
+      max-width: none;
+      max-height: none;
+    }
+
+
+
+    /* Slim footer zoom pill: single unintrusive [-] [%] [+] | [1:1] group */
+    .zoom-slim-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      background: transparent;
+      border: 1px solid var(--border-subtle, var(--border));
+      border-radius: 20px;
+      padding: 1px 6px;
+    }
+    .zoom-slim-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 1px 5px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1.4;
+      min-width: 20px;
+    }
+    .zoom-slim-btn:hover {
+      background: var(--row-hover, rgba(255, 255, 255, 0.08));
+      color: var(--text);
+    }
+    .zoom-slim-btn.zoom-slim-mode.active {
+      color: var(--primary);
+      font-weight: 700;
+    }
+    .zoom-slim-label {
+      min-width: 46px;
+      font-size: 10.5px;
+    }
+    .zoom-slim-sep {
+      width: 1px;
+      height: 12px;
+      background: var(--border-subtle, var(--border));
+      margin: 0 2px;
+    }
+
+    /* Images must never show a text caret: beat the base
+       #previewModal #prevContent * text-cursor rule */
+    #previewModal #prevContent.has-lightbox-image,
+    #previewModal #prevContent:has(.preview-image-lightbox) {
+      cursor: default !important;
+    }
+    #previewModal #prevContent .preview-image-lightbox {
+      cursor: default !important;
+      user-select: none !important;
+      -webkit-user-select: none !important;
+    }
+    #previewModal #prevContent .preview-image-lightbox.is-one-to-one {
+      cursor: grab !important;
+    }
+    #previewModal #prevContent.is-panning,
+    #previewModal #prevContent.is-panning * {
+      cursor: grabbing !important;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(4px);
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 500;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.15s ease;
+      box-shadow: var(--box-shadow);
+      z-index: 10020;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      white-space: nowrap;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .toast-action-btn {
+      background: var(--primary);
+      border: none;
+      color: var(--primary-text);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: opacity 0.12s ease;
+    }
+    .toast-action-btn:hover {
+      opacity: 0.9;
+    }
+
+    /* App Picker Modal & List */
+    .app-picker-list {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .app-picker-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      cursor: pointer !important;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      transition: background 0.12s ease, border-color 0.12s ease;
+      font-size: 12px;
+      user-select: none;
+    }
+    .app-picker-item * {
+      cursor: pointer !important;
+    }
+    .app-picker-item:hover {
+      background: var(--row-hover, rgba(255, 255, 255, 0.05));
+    }
+    .app-picker-item.active {
+      background: var(--row-selected, rgba(94, 106, 210, 0.16));
+      border-color: var(--border-selected, rgba(94, 106, 210, 0.45));
+    }
+    .app-picker-item-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      flex: 1;
+      padding-right: 8px;
+    }
+    .app-picker-empty {
+      font-weight: 600;
+      color: var(--text-main, #ffffff);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .app-picker-title {
+      font-size: 11px;
+      color: #94a3b8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    [data-theme="light"] .app-picker-name {
+      color: #0f172a;
+    }
+    [data-theme="light"] .app-picker-title {
+      color: #64748b;
+    }
+    .app-picker-empty {
+      padding: 24px 16px;
+      text-align: center;
+      color: var(--text-sub);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .blocked-app-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px 3px 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      font-size: 11.5px;
+      color: var(--text);
+      font-family: var(--font-mono);
+      user-select: none;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .blocked-app-chip-remove {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: transparent;
+      border: none;
+      color: var(--text-sub);
+      cursor: pointer;
+      font-size: 11px;
+      line-height: 1;
+      padding: 0;
+      transition: background 0.12s ease, color 0.12s ease;
+    }
+    .blocked-app-chip-remove:hover {
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+    }
+
+    /* ==========================================================================
+       PERMANENT +10% ZOOM SCALING (Zero-Shift / Zero-Crop Comfortable Default)
+       ========================================================================== */
+    body.zoomed-10 {
+      font-size: 13.5px;
+    }
+    body.zoomed-10 .brand { font-size: 13.5px; }
+    body.zoomed-10 .search-wrapper { height: 42px; }
+    body.zoomed-10 .search-input { font-size: 13.5px; }
+    body.zoomed-10 .clip-row { padding-top: 12px; padding-bottom: 12px; }
+    body.zoomed-10 .row-text { font-size: 13.8px; line-height: 1.45; }
+    body.zoomed-10 .row-text.mono { font-size: 12.5px; }
+    body.zoomed-10 .col-pill { font-size: 11.5px; height: 24px; padding: 0 9px; }
+    body.zoomed-10 .collections-bar { height: 35px; font-size: 11.5px; }
+    body.zoomed-10 .st-select { font-size: 12.5px; height: 30px; }
+    body.zoomed-10 .st-tab { font-size: 12.5px; }
+
+    /* Interface Zoom: History panel only (#mainView). Settings stays Large. */
+    #mainView.zoomed-90 {
+      zoom: 0.90;
+    }
+    #mainView.zoomed-110 {
+      zoom: 1.1;
+    }
+    #mainView.zoomed-125 {
+      zoom: 1.25;
+    }
+    /* Settings view styling (110% zoom, History panel untouched) */
+    #settingsView {
+      zoom: 1.1;
+    }
+    #settingsView .notion-setting-row:not(#autoSortInputBar *) .st-select:not(.rule-collection-select),
+    #settingsView .notion-setting-row:not(#autoSortInputBar *) .custom-select-wrap .custom-select-btn {
+      width: auto !important;
+      max-width: 100% !important;
+      min-width: 120px;
+      flex: 0 1 auto;
+    }
+    /* Auto-Sort dropdown row: force even 50/50 custom selects (overrides the auto-width rule above) */
+    #settingsView .notion-setting-row #autoSortInputBar .rule-bar-row-dropdowns .custom-select-wrap,
+    #settingsView .notion-setting-row #autoSortInputBar .rule-bar-row-dropdowns .custom-select-wrap .custom-select-btn {
+      min-width: 0 !important;
+      max-width: none !important;
+    }
+    #settingsView .notion-setting-row #autoSortInputBar .rule-bar-row-dropdowns .custom-select-wrap {
+      flex: 1 1 0 !important;
+      width: auto !important;
+    }
+    #settingsView .notion-setting-row #autoSortInputBar .rule-bar-row-dropdowns .custom-select-wrap .custom-select-btn {
+      width: 100% !important;
+    }
+    #settingsView .notion-setting-row #autoSortInputBar .rule-bar-row-dropdowns .custom-select-wrap .custom-dropdown-menu .opt-item {
+      max-width: none !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    #settingsView .settings-section {
+      overflow: visible;
+    }
+    #settingsView.settings-view {
+      overflow: hidden;
+    }
+    #settingsView .settings-content {
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    /* Accessibility Focus-Visible Ring */
+    button:focus-visible,
+    select:focus-visible,
+    input:not([type="text"]):not([type="number"]):not([type="search"]):not(.search-input):not(.st-input):focus-visible,
+    .col-pill:focus-visible,
+    .st-tab:focus-visible,
+    [role="button"]:focus-visible {
+      outline: 2px solid var(--accent) !important;
+      outline-offset: 1.5px !important;
+    }
+
+    /* Drag-and-Drop Drop Target Affordance */
+    .col-pill.drop-target-hover {
+      border: 1px dashed var(--accent) !important;
+      background: color-mix(in srgb, var(--accent) 25%, transparent) !important;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    /* Prefers-reduced-motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+    /* 8-Directional Window Resize Handles (All sides & corners) */
+    .dc-resize-edge,
+    .dc-resize-corner {
+      position: absolute;
+      z-index: 9999;
+      pointer-events: auto;
+      -webkit-app-region: no-drag;
+      app-region: no-drag;
+      user-select: none;
+      -webkit-user-select: none;
+      background: transparent;
+    }
+    .dc-resize-edge.edge-t { top: 0; left: 8px; right: 8px; height: 3px; cursor: n-resize; }
+    .dc-resize-edge.edge-b { bottom: 0; left: 8px; right: 8px; height: 3px; cursor: s-resize; }
+    .dc-resize-edge.edge-l { left: 0; top: 8px; bottom: 8px; width: 3px; cursor: w-resize; }
+    .dc-resize-edge.edge-r { right: 0; top: 8px; bottom: 8px; width: 3px; cursor: e-resize; }
+    .dc-resize-corner.corner-tl { top: 0; left: 0; width: 8px; height: 8px; cursor: nwse-resize; }
+    .dc-resize-corner.corner-tr { top: 0; right: 0; width: 8px; height: 8px; cursor: nesw-resize; }
+    .dc-resize-corner.corner-bl { bottom: 0; left: 0; width: 8px; height: 8px; cursor: nesw-resize; }
+    .dc-resize-corner.corner-br { bottom: 0; right: 0; width: 8px; height: 8px; cursor: nwse-resize; }
+
+    /* Disable resize handles & restore normal cursor in Settings view */
+    body.in-settings .dc-resize-edge,
+    body.in-settings .dc-resize-corner,
+    body.in-settings #resizeHandle,
+    body.in-settings .resize-handle {
+      display: none !important;
+      pointer-events: none !important;
+      cursor: default !important;
+    }
+
+
+
+    /* Resize handle — synced 1:1 with prototype sim-resize-handle (visual SVG indicators) */
+    .resize-handle {
+      opacity: 0.45;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-sub);
+    }
+    .resize-handle:hover { opacity: 0.9; }
+    .resize-handle svg { width: 10px; height: 10px; }
+
+    /* ==========================================================================
+       Ctrl-Hover Floating Preview Popover (Pure Content Preview)
+       ========================================================================== */
+    .ctrl-hover-preview-popover {
+      position: fixed;
+      z-index: 10002;
+      pointer-events: none;
+      width: 380px;
+      max-width: 90vw;
+      background: var(--card-bg, #1e222a);
+      border: 1px solid var(--border, #2e3440);
+      border-radius: 8px;
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(24px);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      opacity: 0;
+      transform: scale(0.96) translateY(3px);
+      transition: opacity 0.12s cubic-bezier(0.16, 1, 0.3, 1), transform 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+      color: var(--text, #f1f5f9);
+      font-family: inherit;
+      padding: 12px 14px;
+    }
+    .ctrl-hover-preview-popover.visible {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+    .ctrl-prev-body {
+      padding: 0;
+      flex: 1;
+      overflow-y: auto;
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: var(--text, #e2e8f0);
+      word-break: break-word;
+      white-space: pre-wrap;
+      max-height: 280px;
+    }
+    .ctrl-prev-body::-webkit-scrollbar {
+      width: 4px;
+    }
+    .ctrl-prev-body::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+    .ctrl-prev-body pre {
+      margin: 0;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 11.5px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: var(--text, #f1f5f9);
+    }
+    .ctrl-prev-img {
+      max-width: 100%;
+      max-height: 260px;
+      object-fit: contain;
+      border-radius: 4px;
+      display: block;
+      margin: 0 auto;
+    }
+
+    /* ==========================================================================
+       Live UI Density Preview Test Styles
+       ========================================================================== */
+
+    /* 1. Ultra-Dense (Maximum Efficiency) — now carries Compact View tight layout */
+    body.density-dense .titlebar {
+      height: 32px !important;
+    }
+    body.density-dense .search-wrapper {
+      padding: 3px 6px !important;
+      min-height: 32px !important;
+    }
+    body.density-dense .search-input {
+      font-size: 12px !important;
+      height: 24px !important;
+    }
+    body.density-dense .search-wrapper .search-icon {
+      width: 13px !important;
+      height: 13px !important;
+    }
+    body.density-dense .collections-bar-container,
+    body.density-dense .collections-bar,
+    body.density-dense #collectionsBar {
+      min-height: 32px !important;
+      height: 32px !important;
+      padding: 3px 6px !important;
+    }
+    body.density-dense .collection-pill {
+      padding: 2px 7px !important;
+      font-size: 10.5px !important;
+    }
+    /* DENSE HEIGHT CONTRACT: CSS border-box height == JS bucket for every (details × lines) combo */
+    body.density-dense .clip-row {
+      padding: 4px 8px 4px 4px !important;
+      display: flex !important;
+      align-items: center !important;
+      overflow: hidden !important;
+      box-sizing: border-box !important;
+    }
+
+    /* Details Hidden states (twin: render.js:240-245) */
+    html[data-clip-details="hidden"] body.density-dense[data-line-display="1"] .clip-row { min-height: 31px !important; }
+    html[data-clip-details="hidden"] body.density-dense[data-line-display="2"] .clip-row { min-height: 38px !important; }
+    html[data-clip-details="hidden"] body.density-dense[data-line-display="3"] .clip-row { min-height: 56px !important; }
+    /* Dense auto tiers mirror the JS buckets per tier (twin: render.js dense branch) */
+    html[data-clip-details="hidden"] body.density-dense[data-line-display="auto"] .clip-row:has(.row-text.auto-tier-1) { min-height: 31px !important; }
+    html[data-clip-details="hidden"] body.density-dense[data-line-display="auto"] .clip-row:has(.row-text.auto-tier-2) { min-height: 38px !important; }
+    html[data-clip-details="hidden"] body.density-dense[data-line-display="auto"] .clip-row:has(.row-text.auto-tier-3) { min-height: 56px !important; }
+
+    /* Details Visible states (twin: render.js:240-245) */
+    html:not([data-clip-details="hidden"]) body.density-dense[data-line-display="1"] .clip-row { min-height: 47px !important; }
+    html:not([data-clip-details="hidden"]) body.density-dense[data-line-display="2"] .clip-row { min-height: 44px !important; }
+    html:not([data-clip-details="hidden"]) body.density-dense[data-line-display="auto"] .clip-row:has(.row-text.auto-tier-1) { min-height: 47px !important; }
+    html:not([data-clip-details="hidden"]) body.density-dense[data-line-display="auto"] .clip-row:has(.row-text.auto-tier-2) { min-height: 44px !important; }
+    html:not([data-clip-details="hidden"]) body.density-dense[data-line-display="auto"] .clip-row:has(.row-text.auto-tier-3) { min-height: 58px !important; }
+    /* Image rows per thumb size (twin: render.js getRowHeight dense branch, clip-list.css)
+       Scoped to Standard: the Compact preset also applies density-dense, and without this
+       guard changing the preview size silently resized Compact rows as well. */
+    html:not([data-layout-preset="compact"]) #appFrame[data-thumb-size="md"] body.density-dense .clip-row:has(.direct-thumbnail),
+    html:not([data-layout-preset="compact"]) #appFrame[data-thumb-size="md"] body.density-dense .clip-row:has(.direct-thumbnail-placeholder) { min-height: 64px !important; }
+    html:not([data-layout-preset="compact"]) #appFrame[data-thumb-size="sm"] body.density-dense .clip-row:has(.direct-thumbnail),
+    html:not([data-layout-preset="compact"]) #appFrame[data-thumb-size="sm"] body.density-dense .clip-row:has(.direct-thumbnail-placeholder) { min-height: 40px !important; }
+
+        /* Direct thumbnail and placeholder line-height normalization in dense mode */
+    body.density-dense .direct-thumbnail {
+      height: 32px !important;
+      min-height: 32px !important;
+    }
+    html:not([data-layout-preset="compact"]) #appFrame[data-thumb-size="md"] body.density-dense .direct-thumbnail { height: 56px !important; min-height: 56px !important; }
+
+    body.density-dense .direct-thumbnail-placeholder {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-size: 14px !important;
+      height: 32px !important;
+      width: 32px !important;
+      min-width: 32px !important;
+    }
+    html:not([data-layout-preset="compact"]) #appFrame[data-thumb-size="md"] body.density-dense .direct-thumbnail-placeholder { height: 56px !important; width: 56px !important; min-width: 56px !important; font-size: 20px !important; }
+    html:not([data-clip-details="hidden"]) body.density-dense[data-line-display="3"] .clip-row { min-height: 58px !important; }
+    body.density-dense .filter-menu-btn,
+    body.density-dense .icon-only-btn,
+    body.density-dense #btnLivePreviewTop,
+    body.density-dense #btnFilters,
+    body.density-dense #btnSettingsTop,
+    body.density-dense #btnViewModeToggleSearch,
+    body.density-dense #pinWindowBtnSearch {
+      width: 26px !important;
+      height: 24px !important;
+      min-width: 26px !important;
+      min-height: 24px !important;
+    }
+    body.density-dense .clip-row .row-text {
+      font-size: 11.5px !important;
+      line-height: 1.3 !important;
+      display: -webkit-box !important;
+      -webkit-box-orient: vertical !important;
+      overflow: hidden !important;
+      white-space: normal !important;
+      text-overflow: ellipsis !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    body.density-dense[data-line-display="1"] .clip-row .row-text{
+      -webkit-line-clamp: 1 !important;
+      line-clamp: 1 !important;
+      max-height: 15px !important;
+    }
+    body.density-dense[data-line-display="2"] .clip-row .row-text{
+      -webkit-line-clamp: 2 !important;
+      line-clamp: 2 !important;
+      max-height: 30px !important;
+    }
+    body.density-dense[data-line-display="3"] .clip-row .row-text{
+      -webkit-line-clamp: 3 !important;
+      line-clamp: 3 !important;
+      max-height: 48px !important;
+    }
+    /* Dense auto: per-tier clamps mirror getRowHeight() tiers (twin: render.js)
+       — a blanket rule here would override every tier and make tiering inert. */
+    body.density-dense[data-line-display="auto"] .clip-row .row-text.auto-tier-1{
+      -webkit-line-clamp: 1 !important;
+      line-clamp: 1 !important;
+      max-height: 15px !important;
+    }
+    body.density-dense[data-line-display="auto"] .clip-row .row-text.auto-tier-2{
+      -webkit-line-clamp: 2 !important;
+      line-clamp: 2 !important;
+      max-height: 30px !important;
+    }
+    body.density-dense[data-line-display="auto"] .clip-row .row-text.auto-tier-3{
+      -webkit-line-clamp: 3 !important;
+      line-clamp: 3 !important;
+      max-height: 48px !important;
+    }
+    body.density-dense .clip-row .meta-app .meta-app {
+      font-size: 10px !important;
+    }
+    body.density-dense .clip-row:not(:hover) .meta-app {
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transition: opacity 0.1s ease;
+    }
+    body.density-dense .clip-row:hover .meta-app {
+      opacity: 0.9 !important;
+      pointer-events: auto !important;
+      transition: opacity 0.15s ease;
+    }
+    /* Icon-only meta keeps the app icon visible without hover (compact one-line) */
+    html[data-clip-details="icon-only"] body.density-dense .clip-row:not(:hover) .meta-app,
+    html[data-clip-details="icon-only"] body.density-dense .clip-row:hover .meta-app {
+      opacity: 0.9 !important;
+      pointer-events: auto !important;
+    }
+
+    /* Ultra-Dense with visible details: render footer inline on the headline flow */
+    html:not([data-clip-details="hidden"]) body.density-dense .row-inner {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      width: 100% !important;
+      overflow: hidden !important;
+    }
+    html:not([data-clip-details="hidden"]) body.density-dense .row-headline {
+      display: inline-flex !important;
+      align-items: center !important;
+      flex: 1 1 auto !important;
+      min-width: 0 !important;
+    }
+    html:not([data-clip-details="hidden"]) body.density-dense .row-footer-line {
+      display: inline-flex !important;
+      align-items: center !important;
+      flex: 0 0 auto !important;
+      margin-left: 8px !important;
+      max-width: 38% !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+    html:not([data-clip-details="hidden"]) body.density-dense .row-footer-line .meta-left {
+      font-size: 10px !important;
+      opacity: 0.85 !important;
+      pointer-events: none !important;
+    }
+    html:not([data-clip-details="hidden"]) body.density-dense .row-footer-line .meta-app,
+    html:not([data-clip-details="hidden"]) body.density-dense .row-footer-line .meta-time {
+      opacity: 0.85 !important;
+      pointer-events: none !important;
+    }
+
+        /* 2. Cards — Auto-Responsive 2-column grid */
+    body.density-cards #listContainer,
+    body.density-cards_subtle #listContainer,
+    body.density-cards_framed #listContainer {
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 10px !important;
+      padding: 12px !important;
+      align-content: start !important;
+      align-items: start !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+    }
+    body.density-cards .group-header,
+    body.density-cards_subtle .group-header,
+    body.density-cards_framed .group-header {
+      grid-column: 1 / -1 !important;
+      margin: 4px 0 !important;
+    }
+    body.density-cards .clip-row,
+    body.density-cards_subtle .clip-row,
+    body.density-cards_framed .clip-row {
+      background: var(--card-bg) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 8px !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+      margin: 0 !important;
+      padding: 12px 14px !important;
+      min-height: 84px !important;
+      max-height: 125px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: flex-start !important;
+      box-sizing: border-box !important;
+      cursor: pointer !important;
+    }
+    body.theme-light.density-cards .clip-row,
+    [data-theme="light"] body.density-cards .clip-row {
+      background: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+    }
+
+    /* Legacy aliases — keep for backward compat (old localStorage values) */
+    body.density-balanced .clip-row {
+      min-height: 48px !important;
+      padding: 6px 10px 6px 4px !important;
+    }
+    body.density-snug #listContainer {
+      padding: 4px 6px !important;
+    }
+
+    /* 3. Compact (Snug) — Tighter comfortable list with subtle dividers */
+    body.density-compact #listContainer {
+      padding: 2px 4px !important;
+    }
+    body.density-compact .clip-row {
+      min-height: 38px !important;
+      padding: 4px 10px 4px 6px !important;
+      margin: 1px 0 !important;
+      border-radius: 4px !important;
+      border: 1px solid transparent !important;
+      border-left: 3px solid transparent !important;
+      border-bottom: 1px solid color-mix(in srgb, var(--border, #1E2230) 45%, transparent) !important;
+      box-shadow: none !important;
+      box-sizing: border-box !important;
+    }
+    body.density-compact .clip-row:hover {
+      background: var(--row-hover, color-mix(in srgb, var(--card-bg) 88%, var(--accent) 6%)) !important;
+    }
+    body.density-compact .clip-row.selected {
+      background: color-mix(in srgb, var(--accent, #5E6AD2) 14%, transparent) !important;
+      border-left: 3px solid var(--accent, #5E6AD2) !important;
+      padding: 4px 10px 4px 6px !important;
+    }
+    body.density-compact .clip-row .row-text {
+      font-size: 12px !important;
+      line-height: 1.28 !important;
+    }
+    /* Minimal removed — matches density-preview.html (Default/Compact/Ultra-Dense/Cards only) */
+
+    /* 4. Elevated Cards — Floating cards with bevel highlight & ambient drop shadow */
+    body.density-elevated #listContainer {
+      padding: 6px 8px !important;
+    }
+    body.density-elevated .clip-row {
+      background: var(--card-bg, var(--bg, #12141C)) !important;
+      border: 1px solid var(--border, #1E2230) !important;
+      border-radius: 8px !important;
+      margin: 4px 0 !important;
+      padding: 8px 12px 8px 10px !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+    }
+    body.density-elevated .clip-row:hover {
+      border-color: color-mix(in srgb, var(--border, #1E2230) 70%, var(--accent) 30%) !important;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+    }
+    body.density-elevated .clip-row.selected {
+      border-color: var(--accent, #5E6AD2) !important;
+      background: color-mix(in srgb, var(--card-bg, #12141C) 86%, var(--accent) 14%) !important;
+      box-shadow: 0 4px 18px color-mix(in srgb, var(--accent) 28%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+    }
+    body.density-elevated .clip-row .row-text {
+      font-size: 12.5px !important;
+      line-height: 1.35 !important;
+    }
+
+
+
+/* Safe DOM Match Highlighting (<mark>) */
+.row-text mark {
+  background: rgba(99, 102, 241, 0.25);
+  color: var(--accent, #818cf8);
+  border-radius: 2px;
+  padding: 0 1px;
+  font-weight: inherit;
+}
+[data-theme="light"] .row-text mark {
+  background: rgba(99, 102, 241, 0.2);
+  color: var(--accent, #4f46e5);
+}
+/* Text-shade overrides (Standard = default tokens; Crisp boosts contrast; Soft/Warm dim for comfort) */
+[data-text-shade="crisp"] .row-text { color: var(--text) !important; font-weight: 500 !important; }
+[data-text-shade="crisp"] .row-text.mono { color: var(--text) !important; }
+[data-text-shade="soft"] .row-text { color: var(--text-muted) !important; font-weight: 400 !important; }
+[data-text-shade="warm"] .row-text { color: var(--text-muted) !important; font-weight: 400 !important; filter: sepia(0.18); }
+[data-theme="light"][data-text-shade="crisp"] .row-text { color: #111827 !important; }
+[data-theme="light"][data-text-shade="soft"] .row-text,
+[data-theme="light"][data-text-shade="warm"] .row-text { color: #44403c !important; filter: none; }
+/* Tooltip: 1:1 Port from Prototype HTML & CSS */
+.smart-tooltip,
+.global-info-tooltip {
+  position: fixed !important;
+  z-index: 999999 !important;
+  pointer-events: none !important;
+  user-select: none !important;
+  padding: 5px 9px !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  line-height: 1.35 !important;
+  letter-spacing: -0.1px !important;
+  border-radius: 6px !important;
+  white-space: nowrap !important;
+  max-width: 320px !important;
+  opacity: 0 !important;
+  transform: translateY(3px) scale(0.97) !important;
+  transition: opacity 150ms ease, transform 150ms ease !important;
+  background: #141724 !important;
+  color: #f1f5f9 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45) !important;
+  display: block !important;
+}
+
+.smart-tooltip.visible,
+.global-info-tooltip.visible {
+  opacity: 1 !important;
+  transform: translateY(0) scale(1) !important;
+}
+
+.smart-tooltip.tooltip-below,
+.global-info-tooltip.tooltip-below {
+  transform: translateY(-3px) scale(0.97) !important;
+}
+
+.smart-tooltip.tooltip-below.visible,
+.global-info-tooltip.tooltip-below.visible {
+  opacity: 1 !important;
+  transform: translateY(0) scale(1) !important;
+}
+
+[data-theme="light"] .smart-tooltip,
+body.theme-light .smart-tooltip,
+[data-theme="light"] .global-info-tooltip,
+body.theme-light .global-info-tooltip {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Keyboard shortcut pill inside tooltips */
+.smart-tooltip kbd,
+.global-info-tooltip kbd {
+  font-family: var(--font-mono, Consolas, monospace) !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  padding: 1px 5px !important;
+  border-radius: 3px !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  color: #cbd5e1 !important;
+  margin-left: 5px !important;
+  display: inline-block !important;
+  vertical-align: baseline !important;
+  letter-spacing: 0.2px !important;
+}
+
+[data-theme="light"] .smart-tooltip kbd,
+body.theme-light .smart-tooltip kbd,
+[data-theme="light"] .global-info-tooltip kbd,
+body.theme-light .global-info-tooltip kbd {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+/* Settings modal light-mode hardening: toggles, danger, inputs */
+[data-theme="light"] .st-toggle:not(.on) .toggle-knob,
+:root[data-theme="light"] .st-toggle:not(.on) .toggle-knob {
+  background: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+[data-theme="light"] .st-toggle.on .toggle-knob,
+:root[data-theme="light"] .st-toggle.on .toggle-knob {
+  background: #ffffff !important;
+}
+[data-theme="light"] .st-input::placeholder,
+:root[data-theme="light"] .st-input::placeholder {
+  color: var(--text-muted) !important;
+}
+[data-theme="light"] .st-toggle:not(.on), :root[data-theme="light"] .st-toggle:not(.on) { background: var(--toggle-bg) !important; border-color: var(--toggle-border) !important; }
+
+/* Move to collection light mode overrides (100% borderless items & crisp row hover) */
+:root[data-theme="light"] .move-collection-item,
+html[data-theme="light"] .move-collection-item,
+[data-theme="light"] .move-collection-item {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+:root[data-theme="light"] .move-collection-item:hover,
+:root[data-theme="light"] .move-collection-item.selected,
+html[data-theme="light"] .move-collection-item:hover,
+html[data-theme="light"] .move-collection-item.selected,
+[data-theme="light"] .move-collection-item:hover,
+[data-theme="light"] .move-collection-item.selected {
+  background: rgba(0, 0, 0, 0.065) !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+[data-theme="light"] .move-collection-item-left {
+  color: #1e293b;
+}
+[data-theme="light"] .move-collection-item-left svg {
+  color: #475569;
+}
+[data-theme="light"] .move-collection-badge {
+  background: none;
+  color: #64748b;
+  border: none;
+}
+:root[data-theme="light"] .move-collection-item:hover .move-collection-badge,
+:root[data-theme="light"] .move-collection-item.selected .move-collection-badge,
+[data-theme="light"] .move-collection-item:hover .move-collection-badge,
+[data-theme="light"] .move-collection-item.selected .move-collection-badge {
+  background: none !important;
+  color: #0f172a !important;
+  border: none !important;
+}
+
+
+/* Modal scroll comfort: padding + custom scrollbars for scrollable list dialogs
+   (Choose an Application, Move to Collection). Keeps first/last rows clear of
+   the footer and matches the app-wide thin-thumb scrollbar language. */
+.app-picker-list {
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+  scroll-padding-top: 8px;
+  scroll-padding-bottom: 12px;
+}
+#moveCollectionList {
+  scrollbar-gutter: auto;
+  overscroll-behavior: contain;
+  scroll-padding-top: 8px;
+  scroll-padding-bottom: 10px;
+}
+.app-picker-list {
+  padding: 4px 6px 8px 2px;
+}
+#moveCollectionList {
+  padding: 2px 2px 4px 2px;
+}
+.app-picker-list,
+#moveCollectionList,
+#clearScrollableList,
+#exportCollectionsList,
+#manageTagsList {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(139, 146, 165, 0.45) transparent !important;
+}
+.app-picker-list::-webkit-scrollbar,
+#moveCollectionList::-webkit-scrollbar,
+#clearScrollableList::-webkit-scrollbar,
+#exportCollectionsList::-webkit-scrollbar,
+#manageTagsList::-webkit-scrollbar {
+  display: block !important;
+  width: 8px !important;
+  height: 8px !important;
+}
+.app-picker-list::-webkit-scrollbar-track,
+#moveCollectionList::-webkit-scrollbar-track,
+#clearScrollableList::-webkit-scrollbar-track,
+#exportCollectionsList::-webkit-scrollbar-track,
+#manageTagsList::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+.app-picker-list::-webkit-scrollbar-thumb,
+#moveCollectionList::-webkit-scrollbar-thumb,
+#clearScrollableList::-webkit-scrollbar-thumb,
+#exportCollectionsList::-webkit-scrollbar-thumb,
+#manageTagsList::-webkit-scrollbar-thumb {
+  background: rgba(139, 146, 165, 0.45) !important;
+  border-radius: 8px !important;
+  border: 2px solid transparent !important;
+  background-clip: padding-box !important;
+}
+.app-picker-list::-webkit-scrollbar-thumb:hover,
+#moveCollectionList::-webkit-scrollbar-thumb:hover,
+#clearScrollableList::-webkit-scrollbar-thumb:hover,
+#exportCollectionsList::-webkit-scrollbar-thumb:hover,
+#manageTagsList::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 146, 165, 0.75) !important;
+  background-clip: padding-box !important;
+  border: 2px solid transparent !important;
+}
+[data-theme="light"] .app-picker-list::-webkit-scrollbar-thumb,
+[data-theme="light"] #moveCollectionList::-webkit-scrollbar-thumb,
+[data-theme="light"] #clearScrollableList::-webkit-scrollbar-thumb,
+[data-theme="light"] #exportCollectionsList::-webkit-scrollbar-thumb,
+[data-theme="light"] #manageTagsList::-webkit-scrollbar-thumb,
+:root[data-theme="light"] .app-picker-list::-webkit-scrollbar-thumb,
+:root[data-theme="light"] #moveCollectionList::-webkit-scrollbar-thumb,
+:root[data-theme="light"] #clearScrollableList::-webkit-scrollbar-thumb,
+:root[data-theme="light"] #exportCollectionsList::-webkit-scrollbar-thumb,
+:root[data-theme="light"] #manageTagsList::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.45) !important;
+  background-clip: padding-box !important;
+  border: 2px solid transparent !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal-card {
+    animation: none !important;
+  }
+}
+
+/* Standardize all dialog frames to 12px (beats var(--win-radius)=0 base; inline-12px cards unchanged) */
+.modal-overlay .modal-card {
+  border-radius: 12px;
+}
+
+/* Batch Tagging Tabs in Tag Modal */
+.tag-modal-batch-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-hover, rgba(255, 255, 255, 0.06));
+  padding: 3px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  margin-bottom: 2px;
+}
+
+.tag-batch-tab {
+  flex: 1;
+  padding: 5px 10px;
+  font-size: 11.5px;
+  font-weight: 500;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  font-family: inherit;
+  text-align: center;
+}
+
+.tag-batch-tab:hover {
+  color: var(--text);
+}
+
+.tag-batch-tab.active {
+  background: var(--bg-card, #1e293b);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] .tag-modal-batch-tabs {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+[data-theme="light"] .tag-batch-tab.active {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Modern Interactive Tag Chip Input Component */
+.tag-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tag-chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 42px;
+  max-height: 120px;
+  overflow-y: auto;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  cursor: text;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tag-chips-container:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.tag-modal-chips-list {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.tag-modal-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--tag-bg, rgba(255, 255, 255, 0.08));
+  border: 1px solid var(--tag-border, rgba(255, 255, 255, 0.15));
+  color: var(--text-secondary, var(--text, #e2e8f0));
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 2px 7px 2px 8px;
+  border-radius: var(--tag-radius, 4px);
+  user-select: none;
+  line-height: 1.35;
+  transition: all 0.12s ease;
+}
+
+.tag-modal-chip:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+.tag-modal-chip.pending-delete {
+  background: color-mix(in srgb, var(--danger, #ef4444) 18%, transparent);
+  border-color: var(--danger, #ef4444);
+  color: var(--danger, #ef4444);
+  animation: tagPulse 0.6s infinite alternate ease-in-out;
+}
+
+@keyframes tagPulse {
+  from { opacity: 0.8; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.tag-modal-chip-text {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag-modal-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0.55;
+  font-size: 13px;
+  line-height: 1;
+  margin-left: 2px;
+  transition: opacity 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+
+.tag-modal-chip-remove:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+[data-theme="light"] .tag-modal-chip,
+body.theme-light .tag-modal-chip {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+[data-theme="light"] .tag-modal-chip:hover,
+body.theme-light .tag-modal-chip:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+[data-theme="light"] .tag-modal-chip.pending-delete,
+body.theme-light .tag-modal-chip.pending-delete {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #b91c1c;
+}
+
+[data-theme="light"] .tag-modal-chip-remove:hover,
+body.theme-light .tag-modal-chip-remove:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #000;
+}
+
+.tag-chip-inline-input {
+  flex: 1 1 80px;
+  min-width: 80px;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  color: var(--text) !important;
+  font-size: 12.5px;
+  font-family: inherit;
+  padding: 3px 4px;
+  margin: 0;
+  box-shadow: none !important;
+}
+
+.tag-chip-inline-input::placeholder {
+  color: var(--text-sub);
+  opacity: 0.65;
+}
+
+.tag-input-hint {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-sub);
+  padding: 0 2px;
+}
+
+.tag-input-hint kbd {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.08));
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-size: 10px;
+  font-family: inherit;
+}
+
+/* Tag Modal Live Autocomplete Dropdown */
+.tag-autocomplete {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 180px;
+  overflow-y: auto;
+  background: var(--bg-dropdown, var(--bg-card, #1e293b));
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  z-index: 10005;
+  padding: 4px;
+}
+
+.tag-ac-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text);
+  user-select: none;
+  transition: background 0.1s ease;
+}
+
+.tag-ac-item:hover,
+.tag-ac-item.active {
+  background: var(--accent-subtle, var(--bg-hover, rgba(255, 255, 255, 0.1)));
+  color: var(--accent-light, var(--text-highlight, #ffffff));
+}
+
+.tag-ac-name {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag-ac-count {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--tag-bg, rgba(255, 255, 255, 0.08));
+  color: var(--text-sub);
+}
+
+/* Recent Tags Chips in Nickname Modal */
+.recent-tags-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+.recent-tags-header {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-sub, #888);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.recent-tags-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 90px;
+  overflow-y: auto;
+}
+.recent-tag-chip {
+  background: var(--tag-bg, rgba(255, 255, 255, 0.08));
+  border: 1px solid var(--tag-border, rgba(255, 255, 255, 0.14));
+  color: var(--text-secondary, var(--text, #e2e8f0));
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: var(--tag-radius, 4px);
+  cursor: pointer;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.12s ease;
+  font-family: inherit;
+}
+.recent-tag-chip:hover {
+  background: color-mix(in srgb, var(--accent, #6366f1) 16%, var(--tag-bg, rgba(255, 255, 255, 0.08)));
+  border-color: color-mix(in srgb, var(--accent, #6366f1) 40%, transparent);
+  color: var(--text, #ffffff);
+}
+.recent-tag-chip.active {
+  background: color-mix(in srgb, var(--accent, #6366f1) 22%, transparent);
+  border-color: var(--accent, #6366f1);
+  color: var(--accent, #818cf8);
+  font-weight: 600;
+}
+[data-theme="light"] .recent-tag-chip,
+body.theme-light .recent-tag-chip {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+[data-theme="light"] .recent-tag-chip:hover,
+body.theme-light .recent-tag-chip:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+[data-theme="light"] .recent-tag-chip.active,
+body.theme-light .recent-tag-chip.active {
+  background: #e0e7ff;
+  border-color: #6366f1;
+  color: #4338ca;
+}
+
+/* Manage Tags Modal */
+.manage-tags-box {
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  background: transparent;
+  border-radius: 8px;
+  padding: 4px 6px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.manage-tags-box::-webkit-scrollbar { width: 5px; }
+.manage-tags-box::-webkit-scrollbar-track { background: transparent; }
+.manage-tags-box::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.18); border-radius: 4px; }
+.manage-tags-box::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.32); }
+[data-theme="light"] .manage-tags-box::-webkit-scrollbar-thumb,
+body.theme-light .manage-tags-box::-webkit-scrollbar-thumb { background: #cbd5e1; }
+[data-theme="light"] .manage-tags-box::-webkit-scrollbar-thumb:hover,
+body.theme-light .manage-tags-box::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+.manage-tags-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: none;
+  overflow-y: visible;
+  padding: 0;
+}
+
+.manage-tag-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: transparent !important;
+  border: none !important;
+  transition: background 0.12s ease;
+}
+
+.manage-tag-row:hover {
+  background: rgba(255, 255, 255, 0.07) !important;
+}
+
+[data-theme="light"] .manage-tag-row:hover,
+body.theme-light .manage-tag-row:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+}
+
+.manage-tag-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.manage-tag-badge {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text);
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+[data-theme="light"] .manage-tag-badge,
+body.theme-light .manage-tag-badge {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+.manage-tag-count {
+  font-size: 11px;
+  color: var(--text-sub);
+}
+
+.manage-tag-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.manage-tag-btn {
+  background: transparent;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  color: var(--text-sub);
+  padding: 3px 8px;
+  font-size: 11px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  box-sizing: border-box;
+}
+
+.manage-tag-btn:hover {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.1));
+  color: var(--text);
+  border-color: var(--text-sub);
+}
+
+.manage-tag-btn.danger {
+  padding: 3px 6px;
+  color: var(--text-muted, #64748b);
+}
+
+.manage-tag-btn.danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: var(--danger, #ef4444);
+  color: var(--danger, #ef4444);
+}
+
+[data-theme="light"] .manage-tag-btn,
+body.theme-light .manage-tag-btn {
+  border-color: #cbd5e1;
+  color: #64748b;
+}
+
+[data-theme="light"] .manage-tag-btn:hover,
+body.theme-light .manage-tag-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+[data-theme="light"] .manage-tag-btn.danger:hover,
+body.theme-light .manage-tag-btn.danger:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #b91c1c;
+}
+
+/* Clear History Modal & Checklist */
+.clear-pill-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px;
+}
+.clear-row-badge {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.clear-pill-row input[type="checkbox"] {
+  accent-color: var(--accent, #38bdf8);
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+#clearScrollableList .clear-pill-row,
+.clear-pill-row:has(input:checked) {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+#clearScrollableList .clear-pill-row:hover {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border-color: transparent !important;
+}
+[data-theme="light"] #clearScrollableList .clear-pill-row:hover,
+body.theme-light #clearScrollableList .clear-pill-row:hover {
+  background: rgba(0, 0, 0, 0.06) !important;
+}
+
+#clearScrollableList::-webkit-scrollbar { width: 5px; }
+#clearScrollableList::-webkit-scrollbar-track { background: transparent; }
+#clearScrollableList::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.18); border-radius: 4px; }
+#clearScrollableList::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.32); }
+[data-theme="light"] #clearScrollableList::-webkit-scrollbar-thumb,
+body.theme-light #clearScrollableList::-webkit-scrollbar-thumb { background: #cbd5e1; }
+[data-theme="light"] #clearScrollableList::-webkit-scrollbar-thumb:hover,
+body.theme-light #clearScrollableList::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+.clear-sections-box,
+.export-sections-box {
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  background: transparent;
+  border-radius: 8px;
+  padding: 5px 6px;
+  box-shadow: none;
+}
+[data-theme="light"] .clear-sections-box,
+[data-theme="light"] .export-sections-box,
+body.theme-light .clear-sections-box,
+body.theme-light .export-sections-box {
+  background: transparent;
+}
+.expand-arrow-btn {
+  background: transparent;
+  border: none;
+  padding: 2px 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted, #64748b);
+  border-radius: 4px;
+  cursor: pointer !important;
+  transition: transform 0.15s ease, color 0.12s ease;
+}
+.expand-arrow-btn:hover {
+  color: var(--text, #f8fafc);
+  background: rgba(255, 255, 255, 0.08);
+}
+[data-theme="light"] .expand-arrow-btn:hover,
+body.theme-light .expand-arrow-btn:hover {
+  color: #0f172a;
+  background: rgba(0, 0, 0, 0.06);
+}
+.expand-arrow-btn.expanded {
+  transform: rotate(90deg);
+}
+
+/* Clear/export rows are interactive labels */
+.clear-pill-row,
+.export-sections-box label {
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ==========================================================================
+   HIGH-CONTRAST DIALOG & MODAL BUTTONS (TRUE BLACK & ALL DARK THEMES)
+   ========================================================================== */
+
+/* 1. Primary Action Buttons across all modals & dialogs */
+.btn-primary,
+.btn-sm.btn-primary {
+  background: var(--primary, #2563eb) !important;
+  color: var(--primary-text, #ffffff) !important;
+  border: 1px solid var(--primary, #2563eb) !important;
+  font-weight: 600 !important;
+  padding: 5px 14px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease !important;
+}
+
+.btn-primary:hover,
+.btn-sm.btn-primary:hover {
+  filter: brightness(1.1) !important;
+}
+
+.btn-primary:active,
+.btn-sm.btn-primary:active {
+  transform: scale(0.98) !important;
+}
+
+/* Geist / True Black (High-Contrast Solid White Button with Crisp Black Text) */
+[data-style="geist"] .btn-primary,
+[data-style="geist"] .btn-sm.btn-primary {
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: 1px solid #ffffff !important;
+  font-weight: 600 !important;
+}
+
+[data-style="geist"] .btn-primary:hover,
+[data-style="geist"] .btn-sm.btn-primary:hover {
+  background: #eaeaea !important;
+  border-color: #eaeaea !important;
+  color: #000000 !important;
+  filter: none !important;
+}
+
+/* 2. Danger / Destructive Action Buttons across all modals */
+.minimal-btn-danger,
+.clear-delete-btn,
+.btn-danger {
+  background: #e11d48 !important;
+  border: 1px solid #e11d48 !important;
+  color: #ffffff !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 5px 14px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  transition: opacity 0.12s ease, filter 0.12s ease, transform 0.08s ease !important;
+}
+
+.minimal-btn-danger:hover,
+.clear-delete-btn:hover,
+.btn-danger:hover {
+  background: #f43f5e !important;
+  border-color: #f43f5e !important;
+  color: #ffffff !important;
+  filter: brightness(1.08) !important;
+}
+
+.minimal-btn-danger:active,
+.clear-delete-btn:active,
+.btn-danger:active {
+  transform: scale(0.98) !important;
+}
+
+/* 3. Secondary / Cancel / Dismiss Buttons across all modals & dialogs */
+.btn-sm,
+.minimal-btn-cancel,
+.st-btn-secondary,
+.clear-cancel-btn {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  color: var(--text, #ededed) !important;
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  padding: 5px 13px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease, transform 0.08s ease !important;
+}
+
+.btn-sm:hover,
+.minimal-btn-cancel:hover,
+.st-btn-secondary:hover,
+.clear-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.14) !important;
+  border-color: rgba(255, 255, 255, 0.38) !important;
+  color: #ffffff !important;
+}
+
+.btn-sm:active,
+.minimal-btn-cancel:active,
+.st-btn-secondary:active,
+.clear-cancel-btn:active {
+  transform: scale(0.98) !important;
+}
+
+/* Light Theme Overrides for Secondary Buttons */
+[data-theme="light"] .btn-sm,
+[data-theme="light"] .minimal-btn-cancel,
+[data-theme="light"] .st-btn-secondary,
+[data-theme="light"] .clear-cancel-btn,
+body.theme-light .btn-sm,
+body.theme-light .minimal-btn-cancel,
+body.theme-light .st-btn-secondary,
+body.theme-light .clear-cancel-btn {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #1e293b !important;
+}
+
+[data-theme="light"] .btn-sm:hover,
+[data-theme="light"] .minimal-btn-cancel:hover,
+[data-theme="light"] .st-btn-secondary:hover,
+[data-theme="light"] .clear-cancel-btn:hover,
+body.theme-light .btn-sm:hover,
+body.theme-light .minimal-btn-cancel:hover,
+body.theme-light .st-btn-secondary:hover,
+body.theme-light .clear-cancel-btn:hover {
+  background: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+}
+
+/* True Black specific modal card border enhancement */
+[data-style="geist"] .modal-card,
+[data-style="geist"] .settings-card,
+[data-style="geist"] .minimal-confirm-dialog {
+  border: 1px solid #2a2a2a !important;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.95), 0 0 0 1px #222222 !important;
+}
+
+/* --- Drag and Drop Import Zone Overlay --- */
+#dropZoneOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 9, 12, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#dropZoneOverlay.active {
+  display: flex !important;
+  opacity: 1 !important;
+}
+
+.drop-zone-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 36px 48px;
+  border-radius: 16px;
+  border: 2px dashed var(--accent, #3b82f6);
+  background: var(--card-bg, #181b22);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(59, 130, 246, 0.2);
+  text-align: center;
+  transform: scale(0.96);
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+#dropZoneOverlay.active .drop-zone-card {
+  transform: scale(1);
+}
+
+.drop-zone-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--accent, #3b82f6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.drop-zone-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text, #f1f5f9);
+}
+
+.drop-zone-subtitle {
+  font-size: 13px;
+  color: var(--text-sub, #94a3b8);
+}
+
+/* Edge-to-edge preview in ALL modes: the card fills the window, no backdrop
+   gap. Outline (not inset shadow) so the stroke paints above solid children. */
+.preview-modal-overlay .modal-card,
+.preview-card {
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  /* Edge stroke: outline paints above the solid header/content
+     backgrounds (an inset shadow would hide underneath them) */
+  outline: 1px solid var(--frame-border, var(--border)) !important;
+  outline-offset: -1px !important;
+  box-shadow: none !important;
+}
+html[data-layout-preset="compact"] .preview-body:not(.has-lightbox-image),
+html[data-layout-preset="compact"] #prevContent:not(.has-lightbox-image),
+.layout-compact .preview-body:not(.has-lightbox-image),
+.layout-compact #prevContent:not(.has-lightbox-image),
+body.density-dense .preview-body:not(.has-lightbox-image),
+body.density-dense #prevContent:not(.has-lightbox-image) {
+  max-height: none !important;
+}
+/* All modes: lift the 62vh text cap so the card fills 100vh and the
+   footer anchors flush at the bottom edge (was compact-only). */
+.preview-body:not(.has-lightbox-image),
+#prevContent:not(.has-lightbox-image) {
+  max-height: none !important;
+}
+/* Image container (no stylesheet rules existed): fill the card like text */
+#prevImageContainer {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden !important;
+}
+html[data-layout-preset="compact"] .preview-image-lightbox,
+.layout-compact .preview-image-lightbox,
+body.density-dense .preview-image-lightbox {
+  object-fit: contain !important;
+}
+/* No window border anywhere: drop the preview stroke too */
+html[data-window-border="hidden"] .preview-modal-overlay .modal-card,
+html[data-window-border="hidden"] .preview-card {
+  box-shadow: none !important;
+  outline: none !important;
+}
+/* Preview header: fixed height in all modes (content-driven padding caps at ~48px) */
+#prevHeader {
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  padding: 0 20px !important;
+  font-size: 14px !important;
+}
+
+/* Modal layering: overlays must cover the Standard-mode titlebar
+   (.titlebar z-index 10001 in layout-chrome.css). Toasts stay on top. */
+.modal-overlay,
+.preview-modal-overlay,
+#previewModal {
+  z-index: 10010;
+}
+.toast {
+  z-index: 10020;
+}
+
+
+
+
+
+body.modal-open .titlebar,
+body:has(.modal-overlay[style*=display: flex]) .titlebar {
+  display: none !important;
+}
+
+/* Move dialog gap fix: even padding, no reserved scroll gutter */
+#moveCollectionModal .move-sections-box {
+  padding: 4px;
+}
+#moveCollectionModal #moveCollectionList {
+  padding: 0;
+  margin: 0;
+  scrollbar-gutter: auto;
+}
