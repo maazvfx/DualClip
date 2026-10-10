@@ -32,22 +32,12 @@
         } else if (msg.event === 'onWindowHide' && typeof window.onWindowHide === 'function') {
           if (typeof window.setWindowVisibility === 'function') window.setWindowVisibility(false);
           window.onWindowHide();
-        } else if (msg.event === 'onInvalidateHeight') {
-          if (typeof window.invalidateCachedHeight === 'function') window.invalidateCachedHeight();
-        } else if (msg.event === 'onInvalidateClips') {
-          if (typeof window.invalidateClips === 'function') window.invalidateClips();
         } else if (msg.event === 'onCaptureStateChanged' && typeof window.onCaptureStateChanged === 'function') {
           window.onCaptureStateChanged(msg.data);
-        } else if ((msg.event === 'onPauseChanged' || msg.event === 'onPauseStateChanged') && typeof window.onPauseChanged === 'function') {
+        } else if (msg.event === 'onPauseChanged' && typeof window.onPauseChanged === 'function') {
           window.onPauseChanged(msg.data);
         } else if (msg.event === 'onCycleNext' && typeof window.onCycleNext === 'function') {
           window.onCycleNext();
-        } else if (msg.event === 'open_edit_clip' && msg.data) {
-          if (typeof openEditClipModal === 'function') openEditClipModal(msg.data);
-        } else if (msg.event === 'onCyclePrev' && typeof window.onCyclePrev === 'function') {
-          window.onCyclePrev();
-        } else if (msg.event === 'onPasteNumbered' && typeof window.onPasteNumbered === 'function') {
-          window.onPasteNumbered(msg.data);
         } else if (msg.event === 'onWinReleased' && typeof window.onWinReleased === 'function') {
           window.onWinReleased();
         } else if (msg.event === 'onToast') {

@@ -1093,33 +1093,6 @@ window.onCycleNext = function() {
   }
 };
 
-window.onCyclePrev = function() {
-  if (typeof isWindowHidden === 'function' && isWindowHidden()) return;
-  if (typeof windowShowTimestamp !== 'undefined' && (Date.now() - windowShowTimestamp < 250)) return;
-  window._smartHoldActive = true;
-  winCycleCount++;
-  if (typeof cycleSelection === 'function') {
-    cycleSelection(-1);
-  } else if (clips && clips.length > 0) {
-    selectedIndex = (selectedIndex - 1 + clips.length) % clips.length;
-    selectedIndices.clear();
-    selectedIndices.add(selectedIndex);
-    lastAnchorIndex = selectedIndex;
-    if (typeof scrollIndexIntoView === 'function') scrollIndexIntoView(selectedIndex);
-  }
-};
-
-window.onPasteNumbered = function(data) {
-  if (!data || typeof data.index !== 'number' || !clips || clips.length === 0) return;
-  const targetIdx = data.index;
-  if (targetIdx >= 0 && targetIdx < clips.length) {
-    const targetClip = clips[targetIdx];
-    if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.paste_clip === 'function') {
-      window.pywebview.api.paste_clip(targetClip.id);
-    }
-  }
-};
-
 window.onWinReleased = function() {
   window._smartHoldActive = false;
   const didCycle = winCycleCount > 0;
