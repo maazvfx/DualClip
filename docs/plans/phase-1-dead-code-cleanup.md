@@ -69,9 +69,16 @@
   - Allowed pointer down drag handles (`.dc-resize-edge`, `.dc-resize-corner`, `#resizeHandle`) to properly bind and call `start_resize`.
 - **Verification:** User verified drag handle resizing works.
 
+### Step 6: Deduplicate Global Error Listeners
+- **Commit:** `1715586`
+- **Files Modified:** `ui/js/core/state.js`, `ui/js/core/bridge.js`
+- **What Was Done:**
+  - Removed duplicate `window.addEventListener('error')` and `window.addEventListener('unhandledrejection')` listeners in `state.js` and `bridge.js`.
+  - The comprehensive early handler inside `index.html` (lines 20-35) already catches all startup and runtime exceptions, formatting stack traces and file:line locations.
+- **Verification:** App boots cleanly and console logs remain clean.
+
 ---
 
 ## Remaining Steps in Phase 1
 
-- [ ] **Step 6**: Remove unused debug logger `write_debug_log` & dead bootstrap instrumentation sink (`__dcMark`).
 - [ ] **Step 7**: Remove unused inline fallback helpers left over from old refactors.
