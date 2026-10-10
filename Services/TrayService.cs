@@ -37,16 +37,11 @@ public class TrayService : IDisposable
         _renderer = new CustomTrayMenuRenderer();
         _contextMenu = new ContextMenuStrip
         {
-            Renderer = _renderer,
             ShowImageMargin = false,
-            ShowCheckMargin = true,
-            Font = new Font("Segoe UI", 9.25f, FontStyle.Regular)
+            ShowCheckMargin = true
         };
 
-        var openItem = new ToolStripMenuItem("Open DualClip", null, (_, _) => ToggleRequested?.Invoke())
-        {
-            Font = new Font("Segoe UI", 9.25f, FontStyle.Bold)
-        };
+        var openItem = new ToolStripMenuItem("Open DualClip", null, (_, _) => ToggleRequested?.Invoke());
         _contextMenu.Items.Add(openItem);
 
         var pauseItem = new ToolStripMenuItem("Pause Capture");
@@ -64,8 +59,6 @@ public class TrayService : IDisposable
         {
             pauseMenu.ShowImageMargin = false;
             pauseMenu.ShowCheckMargin = true;
-            pauseMenu.Font = _contextMenu.Font;
-            pauseMenu.Renderer = _renderer;
         }
 
         pauseItem.DropDownItems.Add(pauseUntilResume);
@@ -91,8 +84,6 @@ public class TrayService : IDisposable
         {
             clearMenu.ShowImageMargin = false;
             clearMenu.ShowCheckMargin = false;
-            clearMenu.Font = _contextMenu.Font;
-            clearMenu.Renderer = _renderer;
         }
 
         var clearOlder7 = new ToolStripMenuItem("Older Than 7 Days", null, (_, _) => ClearOlderThanRequested?.Invoke(7));
@@ -112,7 +103,7 @@ public class TrayService : IDisposable
         var exitItem = new ToolStripMenuItem("Exit DualClip", null, (_, _) => ExitRequested?.Invoke());
         _contextMenu.Items.Add(exitItem);
 
-        ApplyVerticalPadding(_contextMenu.Items);
+        // ApplyVerticalPadding(_contextMenu.Items);
 
         _contextMenu.Opened += (_, _) => _menuOpen = true;
         _contextMenu.Closed += (_, _) => _menuOpen = false;
@@ -170,35 +161,7 @@ public class TrayService : IDisposable
 
     private void ApplyTheme(string theme)
     {
-        bool isLight = string.Equals(theme, "light", StringComparison.OrdinalIgnoreCase);
-        if (string.Equals(theme, "system", StringComparison.OrdinalIgnoreCase))
-        {
-            isLight = !IsWindowsDarkMode();
-        }
-
-        _renderer.SetTheme(isLight);
-        Color bg = isLight ? Color.FromArgb(250, 250, 252) : Color.FromArgb(24, 26, 36);
-        Color fg = isLight ? Color.FromArgb(28, 32, 42) : Color.FromArgb(235, 238, 246);
-
-        _contextMenu.BackColor = bg;
-        _contextMenu.ForeColor = fg;
-
-        foreach (ToolStripItem item in _contextMenu.Items)
-        {
-            item.BackColor = bg;
-            item.ForeColor = fg;
-            if (item is ToolStripMenuItem menuItem && menuItem.HasDropDownItems)
-            {
-                menuItem.DropDown.BackColor = bg;
-                menuItem.DropDown.ForeColor = fg;
-                menuItem.DropDown.Renderer = _renderer;
-                foreach (ToolStripItem sub in menuItem.DropDownItems)
-                {
-                    sub.BackColor = bg;
-                    sub.ForeColor = fg;
-                }
-            }
-        }
+        // Temporarily disabled custom styling per user request
     }
 
     private static bool IsWindowsDarkMode()
