@@ -77,8 +77,16 @@
   - The comprehensive early handler inside `index.html` (lines 20-35) already catches all startup and runtime exceptions, formatting stack traces and file:line locations.
 - **Verification:** App boots cleanly and console logs remain clean.
 
+### Step 7: Remove Obsolete Inline Fallbacks & Deprecated Direct Move Shim
+- **Commit:** `0ddf556`
+- **Files Modified:** `ui/js/keyboard.js`, `ui/js/settings/settings-rules.js`, `ui/js/settings/settings-shortcuts.js`
+- **What Was Done:**
+  - In `keyboard.js`, removed redundant legacy inline `else if` fallbacks in Arrow key hold-session and `onCycleNext` (the canonical `window.cycleSelection` helper handles this unconditionally).
+  - In `settings-rules.js`, removed the unreachable fallback block under `toggleIncognitoSetting` and delegated directly to `_coreToggleIncognito`.
+  - In `settings-shortcuts.js`, deleted the deprecated `renderDirectMoveSettingsList()` shim and removed the duplicate second render call in `assignDirectMoveHotkey`.
+- **Verification:** Arrow key cycling, incognito toggle, and collections shortcut assignments work smoothly.
+
 ---
 
-## Remaining Steps in Phase 1
-
-- [ ] **Step 7**: Remove unused inline fallback helpers left over from old refactors.
+## Phase 1 Summary: 100% Complete!
+All zero-risk dead code identified in the audit has been systematically removed, verified, and documented across 8 discrete git commits.
