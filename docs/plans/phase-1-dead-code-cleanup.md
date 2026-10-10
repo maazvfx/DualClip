@@ -61,6 +61,14 @@
     - Unused `.settings-row.locked` and `.managed-hint` rules.
 - **Verification:** Clip preview dialog and settings appearance render cleanly.
 
+### Step 5.5: Fix Window Resize Drag Handles
+- **Commit:** `193c9d4`
+- **Files Modified:** `ui/js/list/actions.js`
+- **What Was Done:**
+  - Restored missing `attach()` call on `DOMContentLoaded` / immediate check inside `initWindowResizeHandles()`.
+  - Allowed pointer down drag handles (`.dc-resize-edge`, `.dc-resize-corner`, `#resizeHandle`) to properly bind and call `start_resize`.
+- **Verification:** User verified drag handle resizing works.
+
 ---
 
 ## Remaining Steps in Phase 1
