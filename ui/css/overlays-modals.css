@@ -1,4 +1,4 @@
-    /* Dedicated Full Preview Modal Card with Image Lightbox Support — text preview scrollable */
+﻿    /* Dedicated Full Preview Modal Card with Image Lightbox Support — text preview scrollable */
     .preview-modal-overlay .modal-card,
     .preview-card {
       animation: none !important;
@@ -1103,43 +1103,6 @@ html[data-theme="light"] .move-collection-item.selected,
   }
 }
 
-/* Edit Clip textarea: soft inset + clean focus ring + visible scrollbar (token-based, all themes) */
-#editClipTextarea {
-  background: var(--card-bg, #1e222a) !important;
-  color: var(--text) !important;
-  scrollbar-width: thin !important;
-  scrollbar-color: rgba(255, 255, 255, 0.28) transparent !important;
-  overflow-y: auto !important;
-}
-#editClipTextarea:focus {
-  border-color: var(--border-subtle, var(--border)) !important;
-  box-shadow: none !important;
-  outline: none !important;
-}
-#editClipTextarea::-webkit-scrollbar {
-  display: block !important;
-  width: 6px !important;
-  height: 6px !important;
-}
-#editClipTextarea::-webkit-scrollbar-track {
-  background: transparent !important;
-}
-#editClipTextarea::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.28) !important;
-  border-radius: 6px !important;
-}
-#editClipTextarea::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.45) !important;
-}
-body.theme-light #editClipTextarea::-webkit-scrollbar-thumb,
-[data-theme="light"] #editClipTextarea::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.25) !important;
-}
-body.theme-light #editClipTextarea::-webkit-scrollbar-thumb:hover,
-[data-theme="light"] #editClipTextarea::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.40) !important;
-}
-
 /* Standardize all dialog frames to 12px (beats var(--win-radius)=0 base; inline-12px cards unchanged) */
 .modal-overlay .modal-card {
   border-radius: 12px;
@@ -1954,107 +1917,6 @@ html[data-window-border="hidden"] .preview-modal-overlay .modal-card,
 html[data-window-border="hidden"] .preview-card {
   box-shadow: none !important;
   outline: none !important;
-}
-/* Compact edit dialog: same seamless edge-to-edge as the preview */
-html[data-layout-preset="compact"] #editClipModal .modal-card,
-.layout-compact #editClipModal .modal-card,
-body.density-dense #editClipModal .modal-card {
-  width: 100vw !important;
-  max-width: 100vw !important;
-  height: 100vh !important;
-  max-height: 100vh !important;
-  margin: 0 !important;
-  border: none !important;
-  border-radius: 0 !important;
-  outline: 1px solid var(--frame-border, var(--border)) !important;
-  outline-offset: -1px !important;
-}
-html[data-layout-preset="compact"] #editClipModal textarea,
-.layout-compact #editClipModal textarea,
-body.density-dense #editClipModal textarea {
-  height: auto !important;
-  flex: 1 1 auto !important;
-  min-height: 200px !important;
-  resize: none !important;
-}
-/* TEMP-HIDE-EDIT-CHROME — user evaluating look, finalize or revert after verdict (all modes) */
-#editClipModal .modal-card > div:not(.settings-header):not(.settings-footer) {
-  padding: 0 !important;
-  gap: 0 !important;
-}
-#editClipModal textarea {
-  border: none !important;
-  background: transparent !important;
-  padding: 12px 16px !important;
-  margin: 0 !important;
-  box-sizing: border-box !important;
-}
-#editClipModal div:has(> #editClipStats) {
-  display: none !important;
-}
-#editClipPasteBtn {
-  display: none !important;
-}
-/* Clean editor layout — single scrollbar, no padding/content cutoff */
-#editClipModal .modal-card > div:not(.settings-header):not(.settings-footer) {
-  overflow: hidden !important;
-  display: flex !important;
-  flex: 1 1 auto !important;
-}
-#editClipModal textarea {
-  overflow-y: auto !important;
-  flex: 1 1 auto !important;
-  width: 100% !important;
-  height: 100% !important;
-  min-height: 0 !important;
-  box-sizing: border-box !important;
-  padding: 14px 16px !important;
-  scrollbar-gutter: stable;
-  scrollbar-width: thin !important;
-  scrollbar-color: rgba(255, 255, 255, 0.28) transparent !important;
-}
-#editClipModal textarea::-webkit-scrollbar {
-  width: 6px !important;
-}
-#editClipModal textarea::-webkit-scrollbar-track {
-  background: transparent !important;
-}
-#editClipModal textarea::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.28) !important;
-  border-radius: 6px !important;
-}
-/* Header and Footer match preview modal 1:1 */
-html[data-layout-preset="compact"] #editClipModal .settings-header,
-.layout-compact #editClipModal .settings-header,
-body.density-dense #editClipModal .settings-header,
-#editClipModal .settings-header {
-  height: 48px !important;
-  min-height: 48px !important;
-  max-height: 48px !important;
-  padding: 0 20px !important;
-  font-size: 14px !important;
-  box-sizing: border-box !important;
-}
-#editClipModal .settings-footer {
-  padding: 10px 16px !important;
-  box-sizing: border-box !important;
-}
-#editClipTextarea {
-  padding: 16px !important;
-  margin: 0 !important;
-  box-sizing: border-box !important;
-  font-family: var(--font-mono) !important;
-  font-size: 12px !important;
-  line-height: 1.55 !important;
-  letter-spacing: normal !important;
-  color: var(--text) !important;
-  background: var(--card-bg, #1e222a) !important;
-  white-space: pre-wrap !important;
-  word-break: break-word !important;
-  border: none !important;
-  outline: none !important;
-  scrollbar-gutter: stable;
-  -webkit-font-smoothing: antialiased;
 }
 /* Preview header: fixed height in all modes (content-driven padding caps at ~48px) */
 #prevHeader {

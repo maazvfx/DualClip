@@ -1,4 +1,4 @@
-/* Modal Overlay (Dedicated Preview) */
+﻿/* Modal Overlay (Dedicated Preview) */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -1194,29 +1194,6 @@
   letter-spacing: -0.5px;
   color: var(--accent-light, #818cf8);
   margin-left: 2px;
-}
-
-/* Settings Row Locked State (e.g. Ultra-Dense Details Lock) */
-.settings-row.locked,
-.notion-setting-row.locked {
-  opacity: 0.55;
-  pointer-events: none;
-  cursor: not-allowed;
-}
-.settings-row.locked .st-select,
-.settings-row.locked select,
-.notion-setting-row.locked .st-select,
-.notion-setting-row.locked select {
-  cursor: not-allowed !important;
-  opacity: 0.7;
-}
-.settings-row-desc .managed-hint,
-.setting-caption .managed-hint {
-  display: inline-block;
-  color: var(--primary, #6366f1);
-  font-weight: 500;
-  margin-left: 6px;
-  font-size: 10.5px;
 }
 
 

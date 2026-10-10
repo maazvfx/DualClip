@@ -1,4 +1,4 @@
-    .titlebar {
+﻿    .titlebar {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -366,13 +366,6 @@
       background: transparent;
       border-color: transparent;
       color: var(--text-muted);
-    }
-    @keyframes spinReload {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-    .tb-btn.spinning svg {
-      animation: spinReload 0.65s linear infinite !important;
     }
     .tb-btn.close {
       color: var(--text-muted);
