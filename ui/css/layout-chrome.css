@@ -1,4 +1,4 @@
-﻿    .titlebar {
+    .titlebar {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -93,32 +93,6 @@
       gap: 4px;
       flex-shrink: 0;
       position: relative;
-    }
-    /* Compact mode: buttons appear only when moving near them */
-    html[data-layout-preset="compact"] .search-buttons-cluster,
-    .layout-compact .search-buttons-cluster,
-    body.density-dense .search-buttons-cluster {
-      padding: 0 4px 0 16px;
-      margin-left: -16px;
-    }
-    html[data-layout-preset="compact"] .search-buttons-cluster .filter-menu-btn,
-    .layout-compact .search-buttons-cluster .filter-menu-btn,
-    body.density-dense .search-buttons-cluster .filter-menu-btn {
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    html[data-layout-preset="compact"] .search-buttons-cluster:hover .filter-menu-btn,
-    .layout-compact .search-buttons-cluster:hover .filter-menu-btn,
-    body.density-dense .search-buttons-cluster:hover .filter-menu-btn,
-    html[data-layout-preset="compact"] .search-buttons-cluster .filter-menu-btn.active,
-    .layout-compact .search-buttons-cluster .filter-menu-btn.active,
-    body.density-dense .search-buttons-cluster .filter-menu-btn.active,
-    html[data-layout-preset="compact"] .search-buttons-cluster .filter-menu-btn:focus-visible,
-    .layout-compact .search-buttons-cluster .filter-menu-btn:focus-visible,
-    body.density-dense .search-buttons-cluster .filter-menu-btn:focus-visible {
-      opacity: 1;
-      pointer-events: auto;
     }
     [data-style="raycast"] .titlebar {
       border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
