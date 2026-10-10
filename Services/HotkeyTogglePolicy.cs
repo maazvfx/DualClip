@@ -50,14 +50,7 @@ public static class HotkeyTogglePolicy
             return HotkeyAction.RepositionAndBringToFront;
         }
 
-        // Window is visible and in the foreground:
-        if (elapsedSinceShowMs < summonDebounceMs)
-        {
-            // Rapid repeat / bounce buffer: absorbs accidental multi-taps, key repeats,
-            // or queued hotkey messages under system stress.
-            return HotkeyAction.IgnoreBounce;
-        }
-
+        // If modifier keys are held, user is actively cycling clips:
         if (smartShortcuts && modifiersHeld)
         {
             if (elapsedSinceCycleMs >= cycleDebounceMs)
@@ -65,6 +58,13 @@ public static class HotkeyTogglePolicy
                 return HotkeyAction.CycleNext;
             }
             return HotkeyAction.IgnoreCycleCooldown;
+        }
+
+        // Window is visible and in the foreground (toggle to hide requested):
+        if (elapsedSinceShowMs < summonDebounceMs)
+        {
+            // Rapid repeat / bounce buffer: absorbs accidental multi-taps from re-hiding immediately
+            return HotkeyAction.IgnoreBounce;
         }
 
         return HotkeyAction.Hide;

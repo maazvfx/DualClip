@@ -1079,7 +1079,6 @@ let winCycleCount = 0;
 
 window.onCycleNext = function() {
   if (typeof isWindowHidden === 'function' && isWindowHidden()) return;
-  if (typeof windowShowTimestamp !== 'undefined' && (Date.now() - windowShowTimestamp < 250)) return;
   window._smartHoldActive = true;
   winCycleCount++;
   if (typeof cycleSelection === 'function') {

@@ -65,11 +65,11 @@ public class HotkeyTogglePolicyTests
     }
 
     [Fact]
-    public void RapidMultiPress_UnderSystemStress_DebouncesAndIgnoresBounce()
+    public void RapidMultiPress_WithoutModifiers_DebouncesAndIgnoresBounce()
     {
-        // When system is under stress or the user rapidly taps Ctrl+Shift+V,
-        // events arriving within the summon debounce window (< 350ms) must NOT cycle
-        // selection down or close the window.
+        // When user rapidly taps the summon hotkey (without holding modifiers),
+        // events arriving within the summon debounce window (< 350ms) must NOT accidentally
+        // dismiss/re-hide the window.
         double[] rapidIntervalsMs = { 10.0, 50.0, 100.0, 200.0, 300.0, 349.0 };
 
         foreach (var elapsed in rapidIntervalsMs)
@@ -80,7 +80,7 @@ public class HotkeyTogglePolicyTests
                 elapsedSinceShowMs: elapsed,
                 elapsedSinceCycleMs: 1000.0,
                 smartShortcuts: true,
-                modifiersHeld: true,
+                modifiersHeld: false,
                 fromTray: false);
 
             Assert.Equal(HotkeyAction.IgnoreBounce, action);
