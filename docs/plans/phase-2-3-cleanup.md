@@ -47,3 +47,8 @@
   - Purged obsolete build directories (`publish/singlefile-test/`, `publish/portable-clean/portable_data/`, and older zip in `dist/`).
   - Executed `git gc --aggressive` compressing 4,887 loose objects to packed storage (~144 MiB, reclaiming ~140+ MB).
 - **Verification:** `git status` clean, git repository healthy.
+
+### 7. Compact Search Row Buttons Always Visible (`ui/css/layout-chrome.css`)
+- **What Was Done:** Removed the `opacity: 0` / hover-reveal effect on `.search-buttons-cluster .filter-menu-btn` in compact mode.
+- **Rationale:** The view mode toggle and pin button in the search row previously faded in only when hovering close to that area. They now remain permanently visible and behave like standard titlebar action buttons.
+- **Verification:** Built cleanly in Release mode (0 warnings, 0 errors) and re-launched.
