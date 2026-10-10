@@ -87,8 +87,7 @@ Choose how the list is grouped: by **time**, **date**, **app**, **format**, **pr
 | `Ctrl+S` | Star or unstar |
 | `Ctrl+A` | Select all |
 | `Ctrl+D` | Move to collection |
-| `Ctrl+E` | Edit inline |
-| `F2` or `Ctrl+T` | Rename |
+| `F2` or `Ctrl+T` | Rename / Set Nickname |
 | `Ctrl+F` or `/` | Focus the search box |
 | `Ctrl+,` | Open Settings |
 | `Esc` | Close the window or dialog |
