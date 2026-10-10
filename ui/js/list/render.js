@@ -2233,35 +2233,53 @@ function getEffectiveViewMode() {
 }
 
 const VIEW_MODE_SVG_OUTWARD = '<polyline points="15 3 21 3 21 9"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><polyline points="9 21 3 21 3 15"></polyline><line x1="10" y1="14" x2="3" y2="21"></line>';
+const VIEW_MODE_SVG_INWARD = '<polyline points="4 14 10 14 10 20"></polyline><line x1="10" y1="14" x2="3" y2="21"></line><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line>';
 
 function updateViewModeButton(mode) {
   const m = mode || getEffectiveViewMode();
   const btn = document.getElementById('btnViewModeToggle');
-  if (!btn) return;
+  const btnSearch = document.getElementById('btnViewModeToggleSearch');
   const icon = document.getElementById('viewModeIcon');
+  const iconSearch = document.getElementById('viewModeIconSearch');
 
-  btn.classList.remove('active');
+  if (btn) btn.classList.remove('active');
+  if (btnSearch) btnSearch.classList.remove('active');
+
   let tipText = '';
+  let svgContent = '';
   if (m === 'standard') {
-    // Shows outward arrow indicating the compact view
-    if (icon) icon.innerHTML = VIEW_MODE_SVG_OUTWARD;
+    // In standard mode, show inward arrows indicating contracting into compact mode
+    svgContent = VIEW_MODE_SVG_INWARD;
     tipText = 'View: Standard (Click for Compact)';
-    btn.setAttribute('aria-label', 'Standard view, click for compact');
-  } else if (m === 'compact') {
-    // Shows outward arrow indicating it can expand back
-    if (icon) icon.innerHTML = VIEW_MODE_SVG_OUTWARD;
+    if (btn) btn.setAttribute('aria-label', 'Standard view, click for compact');
+    if (btnSearch) btnSearch.setAttribute('aria-label', 'Standard view, click for compact');
+  } else {
+    // In compact mode, show outward arrows indicating expanding back to standard mode
+    svgContent = VIEW_MODE_SVG_OUTWARD;
     tipText = 'View: Compact (Click for Standard)';
-    btn.setAttribute('aria-label', 'Compact view, click for standard');
+    if (btn) btn.setAttribute('aria-label', 'Compact view, click for standard');
+    if (btnSearch) btnSearch.setAttribute('aria-label', 'Compact view, click for standard');
   }
-  btn.setAttribute('data-tooltip', tipText);
-  btn.removeAttribute('title');
 
-  if (icon) {
-    icon.classList.remove('icon-mode-transition');
-    // Trigger reflow to restart animation
-    void icon.offsetWidth;
-    icon.classList.add('icon-mode-transition');
+  if (icon) icon.innerHTML = svgContent;
+  if (iconSearch) iconSearch.innerHTML = svgContent;
+
+  if (btn) {
+    btn.setAttribute('data-tooltip', tipText);
+    btn.removeAttribute('title');
   }
+  if (btnSearch) {
+    btnSearch.setAttribute('data-tooltip', tipText);
+    btnSearch.removeAttribute('title');
+  }
+
+  [icon, iconSearch].forEach((ic) => {
+    if (ic) {
+      ic.classList.remove('icon-mode-transition');
+      void ic.offsetWidth;
+      ic.classList.add('icon-mode-transition');
+    }
+  });
 }
 
 function applyViewMode(mode) {
