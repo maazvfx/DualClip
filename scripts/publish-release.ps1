@@ -78,33 +78,53 @@ if (-not $SkipInstaller) {
     }
 }
 
-Write-Host "=== 6. Building Clean Portable ZIP (Hiding non-EXE files) ===" -ForegroundColor Cyan
+Write-Host "=== 6. Building Clean Single-File Portable ZIP ===" -ForegroundColor Cyan
 $distDir = "dist"
 if (-not (Test-Path $distDir)) { New-Item -ItemType Directory -Path $distDir | Out-Null }
 $portableStaging = "publish\portable-staging"
 if (Test-Path $portableStaging) { Remove-Item -Recurse -Force $portableStaging }
 
-# Copy published win-x64 payload
-Copy-Item -Recurse -Path "publish\win-x64" -Destination $portableStaging
+# Publish single-file win-x64 executable for clean portable package
+dotnet publish DualClip.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o $portableStaging
+if ($LASTEXITCODE -ne 0) { Write-Error "Portable single-file publish failed." }
+
+if (Test-Path "LICENSE") {
+    Copy-Item -Force "LICENSE" -Destination (Join-Path $portableStaging "LICENSE")
+}
 
 # Add portable marker
-New-Item -ItemType File -Path (Join-Path $portableStaging "portable.dat") -Force | Out-Null
+$portableMarker = Join-Path $portableStaging "portable.dat"
+New-Item -ItemType File -Path $portableMarker -Force | Out-Null
 
-# Set hidden attribute (+H) on all non-EXE items in root of portable package
-Get-ChildItem -Path $portableStaging | Where-Object { $_.Name -ne "DualClip.exe" } | ForEach-Object {
+# Set hidden attribute (+H) on portable.dat and non-executable items
+Get-ChildItem -Path $portableStaging | Where-Object { $_.Name -ne "DualClip.exe" -and -not $_.PSIsContainer } | ForEach-Object {
     $_.Attributes = $_.Attributes -bor [System.IO.FileAttributes]::Hidden
 }
 
 $zipPath = Join-Path $distDir "DualClip-Portable-1.0.0.zip"
 if (Test-Path $zipPath) { Remove-Item -Force $zipPath }
-# NOTE: Compress-Archive with a wildcard skips hidden files (only DualClip.exe
-# would land in the ZIP). .NET CreateFromDirectory includes hidden items and
-# preserves their attributes so the extracted folder keeps the clean look.
-Add-Type -AssemblyName System.IO.Compression.FileSystem | Out-Null
-[System.IO.Compression.ZipFile]::CreateFromDirectory(
-    (Join-Path (Get-Location) $portableStaging),
-    (Join-Path (Get-Location) $zipPath)
-)
+
+# Build ZIP preserving DOS Hidden attribute on non-EXE root files
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$stagingAbs = (Resolve-Path $portableStaging).Path
+$zipAbs = [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $zipPath))
+
+$archive = [System.IO.Compression.ZipFile]::Open($zipAbs, [System.IO.Compression.ZipArchiveMode]::Create)
+try {
+    foreach ($item in (Get-ChildItem -Path $stagingAbs -Recurse -Force)) {
+        if (-not $item.PSIsContainer) {
+            $relPath = $item.FullName.Substring($stagingAbs.Length + 1)
+            $entry = [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $item.FullName, $relPath, [System.IO.Compression.CompressionLevel]::Optimal)
+            if ($item.Attributes -band [System.IO.FileAttributes]::Hidden) {
+                # Store DOS Hidden attribute in ZipArchiveEntry.ExternalAttributes
+                $entry.ExternalAttributes = 0x02
+            }
+        }
+    }
+} finally {
+    $archive.Dispose()
+}
 Write-Host "Portable ZIP created successfully at $zipPath." -ForegroundColor Green
 
 # Cleanup staging
