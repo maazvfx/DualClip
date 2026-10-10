@@ -138,6 +138,8 @@
       set_autostart: (enable) => callHost('set_autostart', [enable]),
       set_start_hidden: (enable) => callHost('set_start_hidden', [enable]),
       get_start_hidden: () => callHost('get_start_hidden', []),
+      set_thumb_size: (size) => callHost('set_thumb_size', [size || 'sm']),
+      get_thumb_size: () => callHost('get_thumb_size', []),
       set_paused: (paused) => callHost('set_paused', [paused]),
       set_timed_incognito: (minutes) => callHost('set_timed_incognito', [minutes]),
       get_paused: () => callHost('get_paused', []),

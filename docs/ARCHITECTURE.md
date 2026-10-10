@@ -42,7 +42,7 @@ web side owns rendering and interaction. They talk over a JSON-RPC bridge.
 ```
 
 The WebView2 environment is created with a dedicated user-data folder and **all permissions are
-denied** (`PermissionRequested` → `Deny`, [MainForm.cs:1111](MainForm.cs#L1111)).
+denied** (`PermissionRequested` → `Deny`, [MainForm.cs:1111](../MainForm.cs)).
 
 ---
 
@@ -50,7 +50,7 @@ denied** (`PermissionRequested` → `Deny`, [MainForm.cs:1111](MainForm.cs#L1111
 
 DualClip resolves every path through [`Services/PathHelper.cs`](Services/PathHelper.cs). There are
 two modes, chosen by the presence of a `portable.dat` file next to the executable
-([PathHelper.cs:16](Services/PathHelper.cs#L16)).
+([PathHelper.cs](../Services/PathHelper.cs)).
 
 ### Installed mode (default)
 
@@ -66,7 +66,7 @@ two modes, chosen by the presence of a `portable.dat` file next to the executabl
 > support article, back up **both**.
 >
 > The `DUALCLIP_DB_PATH` environment variable overrides the database location
-> ([PathHelper.cs:52](Services/PathHelper.cs#L52)). No migration currently moves existing data
+> ([PathHelper.cs](../Services/PathHelper.cs)). No migration currently moves existing data
 > between the two roots — see *Known Rough Edges* below.
 
 ### Portable mode
@@ -146,12 +146,12 @@ search mode instead of failing to start.
 
 ## 4. The JSON-RPC Bridge
 
-`MainForm.cs` handles inbound JSON messages with a large `switch` on the `method` name, and
+[`MainForm.RpcDispatch.cs`](../MainForm.RpcDispatch.cs) handles inbound JSON messages with a large `switch` on the `method` name, and
 responds on the same id. The frontend declares the contract in
-[`ui/js/core/rpc-contracts.js`](ui/js/core/rpc-contracts.js) — treat that file as the source of
+[`ui/js/core/rpc-contracts.js`](../ui/js/core/rpc-contracts.js) — treat that file as the source of
 truth when adding a method, and update it alongside the C# handler.
 
-Roughly 100 methods are live, grouped as:
+122 methods are live, grouped as:
 
 - **Clip lifecycle** — `get_clips`, `add_clip`, `update_clip`, `delete_clip`, `restore_clip`,
   `copy_clip`, `paste_clip`, `paste_delete`, `paste_multi`, `paste_text`, `set_nickname`
@@ -160,14 +160,10 @@ Roughly 100 methods are live, grouped as:
   `reassign_collection`, `merge_collection`, `clear_collection`, `migrate_collection_keys`,
   `get_collection_counts`
 - **Import / export** — `export_clips`, `import_into_collection`
-- **Window** — `show/hide`, `set_window_pos`, `set_window_size`, `resize_window`,
+- **Window** — `hide_window`, `set_window_pos`, `set_window_size`, `resize_window`,
   `start_drag`, `start_resize`, `start_file_drag`, `reset_window_size`, `window_show_ack`
 - **App state** — `set_paused`, `get_paused`, `set_autostart`, `get_autostart`,
   `set_prevent_screen_capture`, `set_show_taskbar`, `set_remember_window_size`, `set_suppress_in_fullscreen`
-
-> `export_collection` still appears as a stub in `rpc-contracts.js` and `bridge.js`, but its
-> backend handler was removed on purpose when JSON export was retired. Treat it as dead UI
-> residue, not a bug to "fix".
 
 ### Export package format (`.dualclip`)
 
@@ -190,7 +186,7 @@ export fails loudly rather than silently dropping fields. Import validates entry
 
 ## 5. Clipboard Capture Pipeline
 
-[`Services/ClipboardListener.cs`](Services/ClipboardListener.cs) creates a hidden message-only
+[`Services/ClipboardListener.cs`](../Services/ClipboardListener.cs) creates a hidden message-only
 Win32 window and listens for `WM_CLIPBOARDUPDATE`. For each event, in order:
 
 1. **Dedupe** — compute a content hash; an existing clip gets its `last_used_at` bumped instead
@@ -211,7 +207,7 @@ Rich `CF_HTML` clipboard content is read for the page URL, which feeds the `url`
 
 ## 6. Hotkeys
 
-Two distinct mechanisms live in [`Services/HotkeyService.cs`](Services/HotkeyService.cs):
+Two distinct mechanisms live in [`Services/HotkeyService.cs`](../Services/HotkeyService.cs):
 
 - **Default binding — `Ctrl+Shift+V`**, registered with Win32 `RegisterHotKey` using
   `MOD_NOREPEAT`.
@@ -224,7 +220,7 @@ Two distinct mechanisms live in [`Services/HotkeyService.cs`](Services/HotkeySer
 If a custom combo fails to register, the service silently falls back to `Ctrl+Shift+V`.
 
 In-window shortcuts are handled declaratively by the frontend in
-[`ui/js/keyboard.js`](ui/js/keyboard.js) — see the table in [README.md](README.md).
+[`ui/js/keyboard.js`](../ui/js/keyboard.js) — see the table in [README.md](../README.md).
 
 ---
 
@@ -269,7 +265,7 @@ Both configurations build with **0 errors and 0 warnings**. There is no `.sln`.
 dotnet test
 ```
 
-93 xUnit tests live in `DualClip.Tests/`, which references the main project. Each test builds a
+280 xUnit tests live in `DualClip.Tests/`, which references the main project. Each test builds a
 throwaway SQLite database in a temp directory and disposes it, so the suite never touches a real
 user history and tests cannot leak state into one another.
 
@@ -341,7 +337,7 @@ skips the Inno Setup step if `ISCC` is not on PATH.
 ## 10. Contributing & Architecture Standards
 
 - Never run the app as part of a build or test loop — kill any running `DualClip.exe` first.
-- Any change to the RPC surface must update **both** `MainForm.cs` and
+- Any change to the RPC surface must update **both** `MainForm.RpcDispatch.cs` and
   `ui/js/core/rpc-contracts.js`.
 - Schema changes belong in `InitializeDatabase` using `EnsureColumn`, never as an in-place
   `ALTER` at a call site.

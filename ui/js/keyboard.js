@@ -154,7 +154,7 @@ document.addEventListener('keydown', (e) => {
 
   const isSettingsOpenNow = document.getElementById('settingsView') && document.getElementById('settingsView').style.display === 'flex';
   if (isSettingsOpenNow && (!activeEl || activeEl.id !== 'settingsSearchInput' && activeEl.tagName !== 'INPUT' && activeEl.tagName !== 'SELECT')) {
-    const tabsList = ['behavior', 'theme', 'window', 'search', 'routing', 'storage', 'shortcuts'];
+    const tabsList = ['behavior', 'theme', 'window', 'routing', 'storage', 'shortcuts'];
     const curIdx = tabsList.indexOf(typeof currentSettingsTab !== 'undefined' ? currentSettingsTab : 'behavior');
     if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
       e.preventDefault();

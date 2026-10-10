@@ -500,6 +500,8 @@ const SETTINGS_SEARCH_INDEX = [
   { id: 'row_incognito', tab: 'behavior', label: 'Pause Clipboard Capture', desc: 'Temporarily suspend recording copied items to the database', keywords: 'pause capture suspend recording stop private privacy incognito timed' },
   { id: 'row_capture_images', tab: 'behavior', label: 'Capture Images and Screenshots', desc: 'Automatically captures copied images and screenshots into your clipboard history', keywords: 'capture images screenshots pictures media clipboard bitmap png' },
   { id: 'row_autostart', tab: 'behavior', label: 'Start DualClip automatically with Windows', desc: 'Launch automatically when you sign in', keywords: 'startup autostart boot windows launch tray' },
+  { id: 'row_remember_selected_clip', tab: 'behavior', label: 'Remember Selected Clip', desc: 'Keep your selected clip highlighted when reopening the window', keywords: 'remember select selected clip reopen restore position highlight last' },
+  { id: 'row_fullscreen_guard', tab: 'behavior', label: 'Pause in Fullscreen Games & Apps', desc: 'Don\u2019t open DualClip while gaming or watching full-screen video', keywords: 'fullscreen guard suppress gaming video directx borderless pause suppress' },
   { id: 'row_toasts_enabled', tab: 'behavior', label: 'Pop-up Messages', desc: 'Show small confirmations when copying, moving, or managing clips', keywords: 'toast notifications popup alert banner confirmation copied moved deleted toast banner message' },
   { id: 'row_auto_update_check', tab: 'behavior', label: 'Auto-check for updates on startup', desc: 'Check quietly when DualClip starts', keywords: 'auto check updates startup version update notification' },
 
@@ -509,6 +511,7 @@ const SETTINGS_SEARCH_INDEX = [
   { id: 'row_zebra', tab: 'theme', label: 'Alternating Row Colors', desc: 'Alternating row background patterns for high density reading', keywords: 'zebra striping pattern alternating row subtle slate depth' },
   { id: 'row_hide_window_border', tab: 'theme', label: 'Hide Window Border', desc: 'Hide outer edge borders around the app frame', keywords: 'border window stroke line frame hide' },
   { id: 'row_clip_details', tab: 'theme', label: 'Clip Details', desc: 'Choose which information appears on clip cards (source app, time, or none)', keywords: 'clip details source app icon name time hidden metadata' },
+  { id: 'row_preview_font', tab: 'theme', label: 'Preview Font', desc: 'Choose the font family used for the large preview popover', keywords: 'preview font typography monospace code serif sans inter font family' },
   { id: 'row_label_style', tab: 'theme', label: 'Tag Display Style', desc: 'Choose how tags appear in the list', keywords: 'tag display style badges chips dots label tags pill gray plain' },
   { id: 'row_line_display', tab: 'theme', label: 'Lines Per Clip', desc: 'Controls maximum visible text lines per clip before truncating', keywords: 'lines per clip line clamp limit truncate text rows auto 1 2 3' },
   { id: 'row_zoom', tab: 'theme', label: 'Interface Zoom', desc: 'Scale UI elements to fit more content or improve readability', keywords: 'zoom scale interface text size readability 90 100 110 125 compact small' },
@@ -529,6 +532,7 @@ const SETTINGS_SEARCH_INDEX = [
   { id: 'row_blocklist_toggle', tab: 'routing', label: 'Ignore Blocklisted Applications', desc: 'When enabled, clipboard events originating from blocked apps are dropped immediately', keywords: 'blocklist ignore blocked applications drop filter master toggle' },
   { id: 'row_blocklist_add', tab: 'routing', label: 'Custom Application Ignore Blocklist', desc: 'DualClip won\u2019t save clips copied from these apps', keywords: 'blocklist custom add app process running picker chips ignore list' },
   { id: 'row_ignore_passwords', tab: 'routing', label: 'Ignore Password Managers & Authenticators', desc: 'Automatically blocks copying sensitive credentials from Bitwarden, 1Password, KeePass', keywords: 'password manager bitwarden 1password keepass lastpass credentials secret sensitive' },
+  { id: 'row_prevent_screen_capture', tab: 'routing', label: 'Screen Capture Protection', desc: 'Prevent DualClip window from appearing in screenshots or screen shares', keywords: 'screen capture protection privacy recording stream share hide window' },
 
   // 6. Storage & Expiry
   { id: 'row_max_clips', tab: 'storage', label: 'Max Saved Clips', desc: 'Automatic rotation keeps your database fast and lightweight by purging older unpinned clips', keywords: 'max saved clips capacity limit history rotation purge storage database unlimited' },
