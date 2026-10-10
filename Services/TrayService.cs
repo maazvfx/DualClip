@@ -119,29 +119,12 @@ public class TrayService : IDisposable
 
         ApplyTheme(AppSettings.Load().TrayTheme);
 
-        Icon? icon = null;
-        var iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "assets", "app.ico");
-        if (File.Exists(iconPath))
-        {
-            try { icon = new Icon(iconPath); } catch { }
-        }
-        if (icon == null)
-        {
-            icon = SystemIcons.Application;
-        }
-        _normalIcon = icon;
-
-        Icon? paused = null;
-        var pausedPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "assets", "app-paused.ico");
-        if (File.Exists(pausedPath))
-        {
-            try { paused = new Icon(pausedPath); } catch { }
-        }
-        _pausedIcon = paused;
+        _normalIcon = LoadBestIcon("assets/app.ico", isPaused: false);
+        _pausedIcon = LoadBestIcon("assets/app-paused.ico", isPaused: true);
 
         _notifyIcon = new NotifyIcon
         {
-            Icon = icon,
+            Icon = _normalIcon ?? SystemIcons.Application,
             Text = "DualClip - Smart Clipboard Manager",
             Visible = true,
             ContextMenuStrip = _contextMenu
@@ -286,6 +269,67 @@ public class TrayService : IDisposable
             }
         }
     }
+
+    private static Icon? LoadBestIcon(string relativePath, bool isPaused)
+    {
+        int cx = GetSystemMetrics(SM_CXSMICON);
+        int cy = GetSystemMetrics(SM_CYSMICON);
+        if (cx <= 0 || cy <= 0)
+        {
+            cx = 16;
+            cy = 16;
+        }
+
+        // 1. Try disk file first (e.g., in unpacked install or dev)
+        try
+        {
+            var diskPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, relativePath);
+            if (File.Exists(diskPath))
+            {
+                return new Icon(diskPath, new Size(cx, cy));
+            }
+        }
+        catch { }
+
+        // 2. Try embedded resource from assembly
+        try
+        {
+            var asm = typeof(TrayService).Assembly;
+            var resName = asm.GetManifestResourceNames()
+                .FirstOrDefault(r => r.EndsWith(Path.GetFileName(relativePath), StringComparison.OrdinalIgnoreCase));
+            if (resName != null)
+            {
+                using var stream = asm.GetManifestResourceStream(resName);
+                if (stream != null)
+                {
+                    return new Icon(stream, new Size(cx, cy));
+                }
+            }
+        }
+        catch { }
+
+        // 3. Fallback to process executable icon
+        try
+        {
+            var exePath = Environment.ProcessPath;
+            if (!string.IsNullOrEmpty(exePath) && File.Exists(exePath))
+            {
+                var exeIcon = Icon.ExtractAssociatedIcon(exePath);
+                if (exeIcon != null)
+                {
+                    return new Icon(exeIcon, new Size(cx, cy));
+                }
+            }
+        }
+        catch { }
+
+        return SystemIcons.Application;
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern int GetSystemMetrics(int nIndex);
+    private const int SM_CXSMICON = 49;
+    private const int SM_CYSMICON = 50;
 
     public void Dispose()
     {
