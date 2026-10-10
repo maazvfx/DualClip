@@ -1,29 +1,5 @@
 // --- DualClip State Management & Backend Event Handlers ---
 
-// Forward uncaught JS errors to app.log so blank-screen incidents are diagnosable in release builds
-// Enhanced to capture stack + error object (fixes opaque "Script error." in WebView2 file:// context)
-window.addEventListener('error', (e) => {
-  try {
-    const src = e.filename ? ` @ ${e.filename}:${e.lineno}:${e.colno}` : '';
-    const stack = e.error && e.error.stack ? ` | stack: ${String(e.error.stack).slice(0, 900)}` : '';
-    const errName = e.error && e.error.name ? ` [${e.error.name}]` : '';
-    const detail = `${e.message || 'unknown error'}${errName}${src}${stack}`;
-    // Console only. No backend logging in release builds.
-    try { console.error('[DualClip JS Error]', detail, e.error); } catch (_) {}
-  } catch (_) {}
-});
-window.addEventListener('unhandledrejection', (e) => {
-  try {
-    let reason = '';
-    if (e.reason instanceof Error) {
-      reason = `${e.reason.name || 'Error'}: ${e.reason.message} | stack: ${String(e.reason.stack || '').slice(0, 900)}`;
-    } else {
-      reason = String(e.reason);
-    }
-    try { console.error('[DualClip unhandledrejection]', reason, e.reason); } catch (_) {}
-  } catch (_) {}
-});
-
 // Optimistic Mutation Shields: prevent in-flight background fetches from clobbering user pin/fav actions
 const pendingPinOverrides = new Map();
 const pendingFavOverrides = new Map();

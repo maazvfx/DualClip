@@ -242,24 +242,6 @@
     pendingCalls
   };
 
-  window.addEventListener('error', function(event) {
-    try {
-      const msg = event.message || 'Unknown error';
-      const file = event.filename || '';
-      const line = event.lineno || 0;
-      const col = event.colno || 0;
-      const stack = (event.error && event.error.stack) ? event.error.stack : '';
-      console.error(`[JS Error] ${msg} at ${file}:${line}:${col}`, stack);
-    } catch {}
-  });
-
-  window.addEventListener('unhandledrejection', function(event) {
-    try {
-      const reason = event.reason;
-      console.error('[Unhandled Rejection]', reason);
-    } catch {}
-  });
-
   // Trigger ready event
   setTimeout(() => {
     window.dispatchEvent(new Event('pywebviewready'));
