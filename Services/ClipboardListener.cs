@@ -636,8 +636,42 @@ public class ClipboardListener : IDisposable
     public bool IgnorePasswords { get; set; } = true;
     public bool CaptureImages { get; set; } = true;
     public bool EnableBlocklist { get; set; } = true;
+    public bool DoubleCopyOverride { get; set; } = false;
     public HashSet<string> BlocklistedApps { get; } = new(StringComparer.OrdinalIgnoreCase);
     public List<AutoSortRuleEntry> AutoSortRules { get; } = new();
+
+    private long _lastExcludedCopyTicks;
+    private string? _lastExcludedProc;
+    private int _lastExcludedContentHash;
+
+    public bool IsBlocklisted(string proc, int contentHash)
+    {
+        if (!EnableBlocklist) return false;
+        bool inBlocklist = BlocklistedApps.Contains(proc) || BlocklistedApps.Contains(Path.GetFileName(proc));
+        if (!inBlocklist) return false;
+
+        if (DoubleCopyOverride)
+        {
+            long now = Environment.TickCount64;
+            bool isRapidSecondCopy = (now - _lastExcludedCopyTicks <= 1200) &&
+                                     string.Equals(_lastExcludedProc, proc, StringComparison.OrdinalIgnoreCase) &&
+                                     _lastExcludedContentHash == contentHash;
+
+            if (isRapidSecondCopy)
+            {
+                _lastExcludedCopyTicks = 0;
+                _lastExcludedProc = null;
+                _lastExcludedContentHash = 0;
+                return false; // Override blocklist: intentional double copy!
+            }
+
+            _lastExcludedCopyTicks = now;
+            _lastExcludedProc = proc;
+            _lastExcludedContentHash = contentHash;
+        }
+
+        return true; // Excluded
+    }
 
     public event Action<ClipItem, bool>? ClipCaptured;
     public event Action<string, long, long>? OversizedClipDropped;
@@ -661,6 +695,7 @@ public class ClipboardListener : IDisposable
         CaptureImages = s.CaptureImages;
         MaxClipsLimit = s.MaxClips > 0 ? s.MaxClips : 500;
         EnableBlocklist = s.EnableBlocklist;
+        DoubleCopyOverride = s.DoubleCopyOverride;
 
         BlocklistedApps.Clear();
         if (s.BlocklistedApps != null)
@@ -862,13 +897,14 @@ public class ClipboardListener : IDisposable
                 return;
             }
 
-            // Blocklist check
-            if (EnableBlocklist && (BlocklistedApps.Contains(proc) || BlocklistedApps.Contains(Path.GetFileName(proc))))
+            string fullText = string.Join("\n", paths);
+
+            // Blocklist check (supports double-copy override)
+            if (IsBlocklisted(proc, fullText.GetHashCode(StringComparison.Ordinal)))
             {
                 return;
             }
 
-            string fullText = string.Join("\n", paths);
             string preview = FormatFilePreview(paths);
             string targetCol = ResolveAutoSortCollection(fullText, proc, title, null);
 
@@ -921,8 +957,8 @@ public class ClipboardListener : IDisposable
                 return;
             }
 
-            // Blocklist check
-            if (EnableBlocklist && (BlocklistedApps.Contains(proc) || BlocklistedApps.Contains(Path.GetFileName(proc))))
+            // Blocklist check (supports double-copy override)
+            if (IsBlocklisted(proc, text != null ? text.GetHashCode(StringComparison.Ordinal) : 0))
             {
                 return;
             }
@@ -1005,8 +1041,8 @@ public class ClipboardListener : IDisposable
                         return;
                     }
 
-                    // Blocklist check
-                    if (EnableBlocklist && (BlocklistedApps.Contains(proc) || BlocklistedApps.Contains(Path.GetFileName(proc))))
+                    // Blocklist check (supports double-copy override)
+                    if (IsBlocklisted(proc, effective.Width ^ (effective.Height << 16)))
                     {
                         return;
                     }
@@ -1092,7 +1128,7 @@ public class ClipboardListener : IDisposable
             var (proc, title, pid) = (source.Proc, source.Title, source.Pid);
             if (pid == _currentPid || string.Equals(proc, "DualClip.exe", StringComparison.OrdinalIgnoreCase)) return;
             if (IgnorePasswords && IsVaultProcess(proc, title, source.FullPath)) return;
-            if (EnableBlocklist && (BlocklistedApps.Contains(proc) || BlocklistedApps.Contains(Path.GetFileName(proc)))) return;
+            if (IsBlocklisted(proc, gifBytes.Length ^ (gifBytes[0] << 16))) return;
 
             using var ms = new MemoryStream(gifBytes);
             using var img = Image.FromStream(ms);
@@ -1158,8 +1194,8 @@ public class ClipboardListener : IDisposable
                 return;
             }
 
-            // Blocklist check
-            if (EnableBlocklist && (BlocklistedApps.Contains(proc) || BlocklistedApps.Contains(Path.GetFileName(proc))))
+            // Blocklist check (supports double-copy override)
+            if (IsBlocklisted(proc, svgMarkup.GetHashCode(StringComparison.Ordinal)))
             {
                 return;
             }

@@ -1187,7 +1187,25 @@ public partial class MainForm
 
                 case "get_blocklist":
                     var sBlock = AppSettings.Load();
-                    SendRpcResponse(rpcId, new { ok = true, enabled = sBlock.EnableBlocklist, apps = sBlock.BlocklistedApps, blocklist = sBlock.BlocklistedApps });
+                    SendRpcResponse(rpcId, new { ok = true, enabled = sBlock.EnableBlocklist, apps = sBlock.BlocklistedApps, blocklist = sBlock.BlocklistedApps, double_copy_override = sBlock.DoubleCopyOverride });
+                    break;
+
+                case "set_double_copy_override":
+                    if (args.ValueKind == JsonValueKind.Array && args.GetArrayLength() > 0 && TryGetBool(args[0], out bool dco))
+                    {
+                        var s = AppSettings.Load();
+                        s.DoubleCopyOverride = dco;
+                        AppSettings.Save(s);
+                        _listener.DoubleCopyOverride = dco;
+                        SendRpcResponse(rpcId, new { ok = true });
+                        break;
+                    }
+                    SendRpcResponse(rpcId, new { ok = false });
+                    break;
+
+                case "get_double_copy_override":
+                    var sDco = AppSettings.Load();
+                    SendRpcResponse(rpcId, new { ok = true, enabled = sDco.DoubleCopyOverride });
                     break;
 
                 case "set_auto_sort_rules":

@@ -70,6 +70,7 @@ const SETTING_DEFAULTS = Object.freeze({
   dualclip_ignore_whitespace: { def: true, type: 'bool' },
   dualclip_ignore_blocklist: { def: true, type: 'bool' },
   dualclip_blocked_apps: { def: '[]', type: 'string' },
+  dualclip_double_copy_override: { def: false, type: 'bool' },
   dualclip_max_clips: { def: 500, type: 'int' },
   dualclip_min_clip_length: { def: 1, type: 'int' },
   dualclip_auto_expire_days: { def: 0, type: 'int' },

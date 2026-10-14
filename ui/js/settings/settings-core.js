@@ -404,6 +404,13 @@ function syncSettingsUiFromStorage() {
     renderBlockedAppsList();
     syncBlocklistToBackend();
 
+    const dco = localStorage.getItem('dualclip_double_copy_override') === '1';
+    const dcoTgl = document.getElementById('stDoubleCopyOverrideToggle');
+    if (dcoTgl) dcoTgl.classList.toggle('on', dco);
+    if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.set_double_copy_override === 'function') {
+      window.pywebview.api.set_double_copy_override(dco).catch(() => {});
+    }
+
     const trackStatsEnabled = localStorage.getItem('dualclip_track_stats') !== '0';
     const trackStatsTgl = document.getElementById('stTrackStatsToggle');
     if (trackStatsTgl) trackStatsTgl.classList.toggle('on', trackStatsEnabled);

@@ -186,6 +186,8 @@
       get_running_apps: () => callHost('get_running_apps', []),
       set_blocklist: (enable, apps) => callHost('set_blocklist', [enable, apps]),
       get_blocklist: () => callHost('get_blocklist', []),
+      set_double_copy_override: (enabled) => callHost('set_double_copy_override', [enabled]),
+      get_double_copy_override: () => callHost('get_double_copy_override', []),
 
       browse_application: () => callHost('browse_application', []),
        get_clip_temp_file: (clipId) => callHost('get_clip_temp_file', [clipId]),

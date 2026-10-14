@@ -18,6 +18,7 @@ public class AppSettingsData
     public bool IgnorePasswords { get; set; } = true;
     public bool CaptureImages { get; set; } = true;
     public bool EnableBlocklist { get; set; } = true;
+    public bool DoubleCopyOverride { get; set; } = false;
     public List<string> BlocklistedApps { get; set; } = new();
     public List<AutoSortRuleEntry> AutoSortRules { get; set; } = GetDefaultAutoSortRules();
 

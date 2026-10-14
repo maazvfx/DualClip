@@ -617,6 +617,22 @@ function handleBlockedAppKeydown(e) {
   }
 }
 
+function toggleDoubleCopyOverrideSetting(el) {
+  if (!el) el = document.getElementById('stDoubleCopyOverrideToggle');
+  if (!el) return;
+  const willBeOn = !el.classList.contains('on');
+  el.classList.toggle('on', willBeOn);
+  try { localStorage.setItem('dualclip_double_copy_override', willBeOn ? '1' : '0'); } catch(e) {}
+  if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.set_double_copy_override === 'function') {
+    window.pywebview.api.set_double_copy_override(willBeOn).catch(() => {});
+  }
+  if (typeof showToast === 'function') {
+    showToast(willBeOn ? 'Double-copy override: Enabled' : 'Double-copy override: Disabled');
+  }
+  notifySettingSaved('row_double_copy_override');
+}
+
+window.toggleDoubleCopyOverrideSetting = toggleDoubleCopyOverrideSetting;
 window.toggleIncognitoSetting = toggleIncognitoSetting;
 window.toggleCaptureImagesSetting = toggleCaptureImagesSetting;
 window.toggleIgnorePasswordsSetting = toggleIgnorePasswordsSetting;
@@ -629,6 +645,7 @@ try {
   window.DC.settings.toggleIgnorePasswordsSetting = toggleIgnorePasswordsSetting;
   window.DC.settings.toggleCaptureImagesSetting = toggleCaptureImagesSetting;
   window.DC.settings.togglePreventScreenCaptureSetting = togglePreventScreenCaptureSetting;
+  window.DC.settings.toggleDoubleCopyOverrideSetting = toggleDoubleCopyOverrideSetting;
 } catch (e) {}
 
 

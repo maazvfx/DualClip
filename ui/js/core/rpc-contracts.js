@@ -97,6 +97,8 @@
     get_capture_filters: { args: [] },
     set_blocklist: { args: ['enable', 'apps'] },
     get_blocklist: { args: [] },
+    set_double_copy_override: { args: ['enabled'] },
+    get_double_copy_override: { args: [] },
     browse_application: { args: [] },
     get_running_apps: { args: [] },
     set_auto_sort_rules: { args: ['rules'] },
