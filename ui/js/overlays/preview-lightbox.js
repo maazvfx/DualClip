@@ -87,6 +87,29 @@ function openFullPreviewModal(clip) {
     }
   } catch {}
 
+  try {
+    const isCompact = document.documentElement.getAttribute('data-layout-preset') === 'compact' ||
+                      (document.body && document.body.classList.contains('density-dense'));
+    if (isCompact && !_compactPreviewExpanded) {
+      const zoom = typeof currentZoomLevel !== 'undefined' ? currentZoomLevel : 1.0;
+      _compactPreExpandSize = {
+        w: window.innerWidth,
+        h: window.innerHeight
+      };
+      _compactPreviewExpanded = true;
+      const targetW = Math.max(Math.round(660 * zoom), window.innerWidth);
+      const targetH = Math.max(Math.round(520 * zoom), window.innerHeight);
+      if (window.dcDebugLog) {
+        window.dcDebugLog('Frontend:Preview', 'Compact preview expansion dispatched: from ' + window.innerWidth + 'x' + window.innerHeight + ' to ' + targetW + 'x' + targetH + ' (animate=true, persist=false)');
+      }
+      if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.set_window_size === 'function') {
+        window.pywebview.api.set_window_size(targetW, targetH, true, false);
+      } else if (typeof callHost === 'function') {
+        callHost('set_window_size', [targetW, targetH, true, false]);
+      }
+    }
+  } catch (_) {}
+
   currentPreviewClip = clip;
   const textBody = document.getElementById('prevContent');
   const imgBody = document.getElementById('prevImageContainer');
@@ -293,32 +316,6 @@ function openFullPreviewModal(clip) {
   // Direct dialog-pin signal (the modal observer also sends it; belt and
   // suspenders so an outside click can never catch the flag unset).
   try { notifyModalPin(true); } catch {}
-
-  try {
-    const isCompact = document.documentElement.getAttribute('data-layout-preset') === 'compact' ||
-                      (document.body && document.body.classList.contains('density-dense'));
-    if (isCompact && !_compactPreviewExpanded) {
-      const zoom = typeof currentZoomLevel !== 'undefined' ? currentZoomLevel : 1.0;
-      _compactPreExpandSize = {
-        w: window.innerWidth,
-        h: window.innerHeight
-      };
-      _compactPreviewExpanded = true;
-      const targetW = Math.max(Math.round(660 * zoom), window.innerWidth);
-      const targetH = Math.max(Math.round(520 * zoom), window.innerHeight);
-      if (window.dcDebugLog) {
-        window.dcDebugLog('Frontend:Preview', 'Compact preview expansion dispatched: from ' + window.innerWidth + 'x' + window.innerHeight + ' to ' + targetW + 'x' + targetH + ' (animate=true, persist=false)');
-      }
-      if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.set_window_size === 'function') {
-        // persist=false: this is a temporary enlargement to fit the image preview, not a
-        // user size choice. Persisting it would leave the remembered size at the enlarged
-        // dimensions if the window is hidden while the lightbox is open.
-        window.pywebview.api.set_window_size(targetW, targetH, true, false);
-      } else if (typeof callHost === 'function') {
-        callHost('set_window_size', [targetW, targetH, true, false]);
-      }
-    }
-  } catch (_) {}
 }
 
 function onLightboxImageDragStart(e) {
@@ -543,8 +540,13 @@ function computeFitScale() {
   const body = document.getElementById('prevImageContainer') || document.getElementById('prevContent');
   if (!body) return 1.0;
   const rect = body.getBoundingClientRect();
-  const availW = Math.max(50, rect.width);
-  const availH = Math.max(50, rect.height);
+  let availW = Math.max(50, rect.width);
+  let availH = Math.max(50, rect.height);
+  if (_compactPreviewExpanded && (availW < 300 || availH < 220)) {
+    const zoom = typeof currentZoomLevel !== 'undefined' ? currentZoomLevel : 1.0;
+    availW = Math.max(availW, Math.round(620 * zoom));
+    availH = Math.max(availH, Math.round(440 * zoom));
+  }
   return Math.min(availW / naturalWidth, availH / naturalHeight, 1.0);
 }
 

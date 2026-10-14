@@ -1480,10 +1480,11 @@ public partial class MainForm
                 int maxH = Math.Max(MIN_WINDOW_HEIGHT, curScreen.Height - WindowPlacement.EdgeMargin * 2);
                         var targetSize = new Size(Math.Clamp(w, MIN_WINDOW_WIDTH, maxW), Math.Clamp(h, MIN_WINDOW_HEIGHT, maxH));
                         DebugLogger.Log("Backend:Window", $"set_window_size called: target={targetSize.Width}x{targetSize.Height}, current={Size.Width}x{Size.Height}, animate={animate}, persist={persist}");
-                        if (animate)
+                        bool isTransient = !persist || _transientSize;
+                        if (animate && !isTransient)
                         {
-                            _transientSize = !persist;
-                            _transientSizeValue = persist ? Size.Empty : targetSize;
+                            _transientSize = false;
+                            _transientSizeValue = Size.Empty;
                             StartBoundsMorph(targetSize, centerAtEnd: true, persistOnComplete: persist);
                             SendRpcResponse(rpcId, new { ok = true, width = targetSize.Width, height = targetSize.Height });
                             break;
@@ -1496,7 +1497,15 @@ public partial class MainForm
                             _suppressResizeSave = true;
                             try
                             {
-                                Size = targetSize;
+                                if (isTransient)
+                                {
+                                    var newLoc = WindowPlacement.ClampToWorkingArea(WindowPlacement.CenterIn(targetSize, curScreen), targetSize, curScreen);
+                                    SetBounds(newLoc.X, newLoc.Y, targetSize.Width, targetSize.Height, BoundsSpecified.All);
+                                }
+                                else
+                                {
+                                    Size = targetSize;
+                                }
                             }
                             finally
                             {
