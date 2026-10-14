@@ -169,7 +169,7 @@
             <line x1="15" y1="3" x2="15" y2="21"></line>
           </svg>
         </button>
-        <button id="btnViewModeToggle" class="tb-btn" type="button" tabindex="-1" onclick="cycleViewMode()" title="View Mode: Standard (Click for Compact)" style="-webkit-app-region: no-drag; app-region: no-drag;">
+        <button id="btnViewModeToggle" class="tb-btn" type="button" tabindex="-1" onclick="cycleViewMode()" title="View Mode: Standard (Ctrl+Tab for Compact)" style="-webkit-app-region: no-drag; app-region: no-drag;">
           <svg id="viewModeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="4 14 10 14 10 20"></polyline>
             <line x1="10" y1="14" x2="3" y2="21"></line>
@@ -220,7 +220,7 @@
           <button id="btnFilters" class="filter-menu-btn icon-only-btn" onclick="toggleFilterDropdown()" title="Filter clipboard history">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
           </button>
-          <button id="btnViewModeToggleSearch" class="filter-menu-btn icon-only-btn" type="button" tabindex="-1" onclick="cycleViewMode()" title="View Mode: Compact (Click for Standard)">
+          <button id="btnViewModeToggleSearch" class="filter-menu-btn icon-only-btn" type="button" tabindex="-1" onclick="cycleViewMode()" title="View Mode: Compact (Ctrl+Tab for Standard)">
             <svg id="viewModeIconSearch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="15 3 21 3 21 9"></polyline>
               <line x1="14" y1="10" x2="21" y2="3"></line>
@@ -1163,6 +1163,10 @@
                 <div class="shortcut-item-row">
                   <div class="shortcut-desc">Focus Search</div>
                   <div class="shortcut-keys"><kbd class="st-keycap">Ctrl</kbd> + <kbd class="st-keycap">F</kbd></div>
+                </div>
+                <div class="shortcut-item-row">
+                  <div class="shortcut-desc">Toggle View Mode (Standard / Compact)</div>
+                  <div class="shortcut-keys"><kbd class="st-keycap">Ctrl</kbd> + <kbd class="st-keycap">Tab</kbd></div>
                 </div>
                 <div class="shortcut-item-row">
                   <div class="shortcut-desc">Close DualClip window or dismiss active modal / search filter</div>

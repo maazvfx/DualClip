@@ -529,6 +529,14 @@ document.addEventListener('keydown', (e) => {
     if (typeof toggleLivePreview === 'function') {
       toggleLivePreview();
     }
+  } else if ((e.key === 'Tab' || e.keyCode === 9) && (e.ctrlKey || e.metaKey) && !e.altKey && !isModalOrSettingsOpen && (!isInputActive || (activeEl && activeEl.id === 'searchInput'))) {
+    // Ctrl+Tab: Toggle View Mode (Standard / Compact)
+    if (typeof dispatchKeyboardAction === 'function' && dispatchKeyboardAction('toggleViewMode', e)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (typeof cycleViewMode === 'function') {
+      cycleViewMode();
+    }
   } else if (e.key === 'F2' || ((e.key === 't' || e.key === 'T') && (e.ctrlKey || e.metaKey))) {
     e.preventDefault();
     e.stopPropagation();

@@ -90,6 +90,7 @@ Choose how the list is grouped: by **time**, **date**, **app**, **format**, **pr
 | `F2` or `Ctrl+T` | Rename / Set Nickname |
 | `Ctrl+F` or `/` | Focus the search box |
 | `Ctrl+,` | Open Settings |
+| `Ctrl+Tab` | Toggle View Mode (Standard / Compact) |
 | `Esc` | Close the window or dialog |
 
 > Inside dialogs, `Tab` and `Enter` move between fields and confirm, and `Esc` cancels.

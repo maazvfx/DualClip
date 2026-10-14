@@ -35,6 +35,11 @@
         if (typeof toggleLivePreview === 'function') toggleLivePreview();
         return true;
       }
+      case 'toggleViewMode': {
+        if (e) e.preventDefault();
+        if (typeof cycleViewMode === 'function') cycleViewMode();
+        return true;
+      }
       default:
         return false;
     }
