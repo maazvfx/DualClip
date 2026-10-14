@@ -51,6 +51,10 @@ function openFullPreviewModal(clip) {
   }
   if (!clip) return;
 
+  if (window.dcDebugLog) {
+    window.dcDebugLog('Frontend:Preview', 'openFullPreviewModal: id=' + clip.id + ', is_image=' + !!clip.is_image + ', currentSize=' + window.innerWidth + 'x' + window.innerHeight);
+  }
+
   // ── Anchor capture (before any DOM/layout change, do NOT rebuild list) ──
   try {
     const container = document.getElementById('listContainer');
@@ -123,7 +127,11 @@ function openFullPreviewModal(clip) {
     img.id = 'previewLightboxImg';
     img.className = 'preview-image-lightbox';
     const initialSrc = (clip.image_data && !clip.image_data.startsWith('file:///')) ? clip.image_data : (clip.thumbnail_data || '');
+    if (window.dcDebugLog) {
+      window.dcDebugLog('Frontend:Preview', 'Image element created. initialSrc length=' + (initialSrc ? initialSrc.length : 0));
+    }
     img.onerror = () => {
+      if (window.dcDebugLog) window.dcDebugLog('Frontend:Preview', 'Image load error for initialSrc; falling back to thumbnail');
       if (clip.thumbnail_data && img.src !== clip.thumbnail_data) {
         img.src = clip.thumbnail_data;
       }
@@ -132,6 +140,9 @@ function openFullPreviewModal(clip) {
     img.onload = () => {
       naturalWidth = img.naturalWidth || 0;
       naturalHeight = img.naturalHeight || 0;
+      if (window.dcDebugLog) {
+        window.dcDebugLog('Frontend:Preview', 'Image onload completed: natural=' + naturalWidth + 'x' + naturalHeight);
+      }
       applyImageZoom();
       try { img.style.opacity = '1'; } catch {}
     };
@@ -141,6 +152,9 @@ function openFullPreviewModal(clip) {
     if (img.complete && img.naturalWidth) {
       naturalWidth = img.naturalWidth || 0;
       naturalHeight = img.naturalHeight || 0;
+      if (window.dcDebugLog) {
+        window.dcDebugLog('Frontend:Preview', 'Image was already cached/complete: natural=' + naturalWidth + 'x' + naturalHeight);
+      }
       applyImageZoom();
     }
 
@@ -271,7 +285,10 @@ function openFullPreviewModal(clip) {
     if (copyBtn) copyBtn.innerText = 'Copy';
   }
   const modal = document.getElementById('previewModal');
-  if (modal) modal.style.display = 'flex';
+  if (modal) {
+    modal.style.display = 'flex';
+    if (window.dcDebugLog) window.dcDebugLog('Frontend:Preview', 'previewModal display set to flex');
+  }
   try { applyPreviewFontForClip(clip); } catch (_) {}
   // Direct dialog-pin signal (the modal observer also sends it; belt and
   // suspenders so an outside click can never catch the flag unset).
@@ -289,6 +306,9 @@ function openFullPreviewModal(clip) {
       _compactPreviewExpanded = true;
       const targetW = Math.max(Math.round(660 * zoom), window.innerWidth);
       const targetH = Math.max(Math.round(520 * zoom), window.innerHeight);
+      if (window.dcDebugLog) {
+        window.dcDebugLog('Frontend:Preview', 'Compact preview expansion dispatched: from ' + window.innerWidth + 'x' + window.innerHeight + ' to ' + targetW + 'x' + targetH + ' (animate=true, persist=false)');
+      }
       if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.set_window_size === 'function') {
         // persist=false: this is a temporary enlargement to fit the image preview, not a
         // user size choice. Persisting it would leave the remembered size at the enlarged
@@ -726,6 +746,9 @@ function closePreviewModal(event, force = false) {
       const restoreW = _compactPreExpandSize && _compactPreExpandSize.w ? _compactPreExpandSize.w : 360;
       const restoreH = _compactPreExpandSize && _compactPreExpandSize.h ? _compactPreExpandSize.h : 260;
       _compactPreExpandSize = null;
+      if (window.dcDebugLog) {
+        window.dcDebugLog('Frontend:Preview', 'Compact restore dispatched: restoring to ' + restoreW + 'x' + restoreH);
+      }
       if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.set_window_size === 'function') {
         // Restoring is a real, persisting size: it puts the window back on the mode's preset.
         window.pywebview.api.set_window_size(restoreW, restoreH, true, true);

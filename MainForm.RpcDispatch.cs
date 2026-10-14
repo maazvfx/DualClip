@@ -1208,6 +1208,18 @@ public partial class MainForm
                     SendRpcResponse(rpcId, new { ok = true, enabled = sDco.DoubleCopyOverride });
                     break;
 
+                case "debug_log":
+                    if (args.ValueKind == JsonValueKind.Array && args.GetArrayLength() >= 2)
+                    {
+                        string tag = args[0].GetString() ?? "Frontend";
+                        string msg = args[1].GetString() ?? "";
+                        DebugLogger.Log(tag, msg);
+                        SendRpcResponse(rpcId, new { ok = true });
+                        break;
+                    }
+                    SendRpcResponse(rpcId, new { ok = false });
+                    break;
+
                 case "set_auto_sort_rules":
                     if (args.ValueKind == JsonValueKind.Array && args.GetArrayLength() > 0 && args[0].ValueKind == JsonValueKind.Array)
                     {
@@ -1467,6 +1479,7 @@ public partial class MainForm
                 int maxW = Math.Max(MIN_WINDOW_WIDTH, curScreen.Width - WindowPlacement.EdgeMargin * 2);
                 int maxH = Math.Max(MIN_WINDOW_HEIGHT, curScreen.Height - WindowPlacement.EdgeMargin * 2);
                         var targetSize = new Size(Math.Clamp(w, MIN_WINDOW_WIDTH, maxW), Math.Clamp(h, MIN_WINDOW_HEIGHT, maxH));
+                        DebugLogger.Log("Backend:Window", $"set_window_size called: target={targetSize.Width}x{targetSize.Height}, current={Size.Width}x{Size.Height}, animate={animate}, persist={persist}");
                         if (animate)
                         {
                             _transientSize = !persist;

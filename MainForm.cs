@@ -205,6 +205,8 @@ public partial class MainForm : Form
     private bool _suppressResizeSave = false;
     private System.Windows.Forms.Timer? _morphTimer;
     private readonly Stopwatch _morphStopwatch = new();
+    private int _morphTickCount = 0;
+    private double _lastMorphTickMs = 0;
     private const double MorphDurationMs = 180.0;
     // Settings opens the shared OS window at its own fixed size. That size is TRANSIENT
     // and must never be written to AppSettings.WindowWidth/WindowHeight, otherwise
@@ -1172,14 +1174,18 @@ public partial class MainForm : Form
                 : _morphFromLoc;
             _suppressResizeSave = true;
             _morphPersistOnComplete = persistOnComplete;
+            _morphTickCount = 0;
+            _lastMorphTickMs = 0;
             _morphStopwatch.Restart();
+            DebugLogger.Log("Backend:Morph", $"StartBoundsMorph: from {_morphFromSize.Width}x{_morphFromSize.Height} at ({_morphFromLoc.X},{_morphFromLoc.Y}) -> to {targetSize.Width}x{targetSize.Height} at ({_morphToLoc.X},{_morphToLoc.Y}), center={centerAtEnd}, persist={persistOnComplete}");
             _morphTimer ??= new System.Windows.Forms.Timer { Interval = 15 };
             _morphTimer.Tick -= MorphTimerTick;
             _morphTimer.Tick += MorphTimerTick;
             _morphTimer.Start();
         }
-        catch
+        catch (Exception ex)
         {
+            DebugLogger.Log("Backend:Morph", $"StartBoundsMorph ERROR: {ex.Message}");
             _suppressResizeSave = false;
         }
     }
@@ -1188,7 +1194,10 @@ public partial class MainForm : Form
     {
         try
         {
+            _morphTickCount++;
             double elapsed = _morphStopwatch.Elapsed.TotalMilliseconds;
+            double delta = elapsed - _lastMorphTickMs;
+            _lastMorphTickMs = elapsed;
             double t = Math.Min(1.0, elapsed / MorphDurationMs);
             // Smooth ease-in-out curve to prevent first-frame snapping and stutter
             double k = t < 0.5 ? 2.0 * t * t : 1.0 - Math.Pow(-2.0 * t + 2.0, 2) / 2.0;
@@ -1197,11 +1206,13 @@ public partial class MainForm : Form
             int curW = (int)Math.Round(_morphFromSize.Width + (_morphToSize.Width - _morphFromSize.Width) * k);
             int curH = (int)Math.Round(_morphFromSize.Height + (_morphToSize.Height - _morphFromSize.Height) * k);
             SetBounds(curX, curY, curW, curH, BoundsSpecified.All);
+            DebugLogger.Log("Backend:Morph", $"Tick #{_morphTickCount}: delta={delta:F1}ms, elapsed={elapsed:F1}ms, bounds=({curX},{curY},{curW}x{curH}), t={t:F2}");
             if (t >= 1.0)
             {
                 try { _morphTimer?.Stop(); } catch { }
                 _morphStopwatch.Stop();
                 _suppressResizeSave = false;
+                DebugLogger.Log("Backend:Morph", $"Morph FINISHED in {elapsed:F1}ms across {_morphTickCount} ticks.");
                 // Only a persisting morph may write the remembered size; a transient one
                 // (Settings) must leave AppSettings untouched.
                 if (_morphPersistOnComplete)
@@ -1220,8 +1231,9 @@ public partial class MainForm : Form
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
+            DebugLogger.Log("Backend:Morph", $"MorphTimerTick ERROR: {ex.Message}");
             try { _morphTimer?.Stop(); } catch { }
             _morphStopwatch.Stop();
             _suppressResizeSave = false;
