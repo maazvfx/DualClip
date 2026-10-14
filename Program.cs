@@ -119,13 +119,13 @@ internal static class Program
             Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
             ApplicationConfiguration.Initialize();
 
-            // High-Performance Tuning (like Ditto / PowerToys):
-            // Elevate process and UI thread priority so hotkey activation and popup rendering
-            // never lag or drop frames even under 100% CPU system stress.
+            // High-Performance Tuning:
+            // Elevate process and UI thread priority to High so hotkey activation and popup rendering
+            // never lag or drop frames even under heavy CPU system load.
             try
             {
-                Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.AboveNormal;
-                Thread.CurrentThread.Priority = ThreadPriority.AboveNormal;
+                Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;
+                Thread.CurrentThread.Priority = ThreadPriority.Highest;
                 GCSettings.LatencyMode = GCLatencyMode.SustainedLowLatency;
             }
             catch { }

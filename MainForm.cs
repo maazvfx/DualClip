@@ -1312,6 +1312,17 @@ public partial class MainForm : Form
             var env = await CoreWebView2Environment.CreateAsync(null, userDataFolder, envOptions);
             await _webView.EnsureCoreWebView2Async(env);
 
+            try
+            {
+                uint browserPid = _webView.CoreWebView2.BrowserProcessId;
+                if (browserPid > 0)
+                {
+                    using var browserProc = Process.GetProcessById((int)browserPid);
+                    browserProc.PriorityClass = ProcessPriorityClass.High;
+                }
+            }
+            catch { }
+
             var settings = _webView.CoreWebView2.Settings;
             settings.IsStatusBarEnabled = false;
             settings.AreDefaultContextMenusEnabled = false;
