@@ -1482,7 +1482,9 @@ public partial class MainForm
                         DebugLogger.Log("Backend:Window", $"set_window_size called: target={targetSize.Width}x{targetSize.Height}, current={Size.Width}x{Size.Height}, animate={animate}, persist={persist}");
                         _transientSize = !persist;
                         _transientSizeValue = persist ? Size.Empty : targetSize;
-                        if (animate)
+                        // Temporarily disabled bounds morph animation for testing
+                        const bool enableMorphAnimation = false;
+                        if (animate && enableMorphAnimation)
                         {
                             StartBoundsMorph(targetSize, centerInPlace: true, persistOnComplete: persist);
                             SendRpcResponse(rpcId, new { ok = true, width = targetSize.Width, height = targetSize.Height });
