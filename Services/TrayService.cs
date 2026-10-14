@@ -11,16 +11,26 @@ public class TrayService : IDisposable
 {
     // Switches matching approved style
     private static readonly bool TrayMenuStylingEnabled = true;
-    private static readonly bool UseDarkBackground = true;
+    private static readonly bool UseThemeBackground = true;
     private static readonly bool UseBorderColour = true;
     private static readonly bool UseHoverColour = false;
     private static readonly bool UseCustomFont = true;
     private static readonly int TrayMenuCorner = 8;
     private static readonly int TrayMenuHoverRadius = 0;
 
-    private static readonly Color TrayMenuBg = ColorTranslator.FromHtml("#141416");
-    private static readonly Color TrayMenuHover = ColorTranslator.FromHtml("#3F3F46");
-    private static readonly Color TrayMenuBorder = ColorTranslator.FromHtml("#3C3C42");
+    // Dark theme palette
+    private static readonly Color TrayMenuBgDark = ColorTranslator.FromHtml("#141416");
+    private static readonly Color TrayMenuHoverDark = ColorTranslator.FromHtml("#3F3F46");
+    private static readonly Color TrayMenuBorderDark = ColorTranslator.FromHtml("#3C3C42");
+    private static readonly Color TrayMenuTextDark = Color.White;
+    private static readonly Color TrayMenuTextDisabledDark = Color.FromArgb(120, 120, 130);
+
+    // Light theme palette
+    private static readonly Color TrayMenuBgLight = ColorTranslator.FromHtml("#FBFBFC");
+    private static readonly Color TrayMenuHoverLight = ColorTranslator.FromHtml("#E8E8EE");
+    private static readonly Color TrayMenuBorderLight = ColorTranslator.FromHtml("#D8D8DF");
+    private static readonly Color TrayMenuTextLight = Color.FromArgb(28, 30, 36);
+    private static readonly Color TrayMenuTextDisabledLight = Color.FromArgb(160, 162, 172);
 
     private readonly NotifyIcon _notifyIcon;
     private readonly ToolStripMenuItem _pauseItem;
@@ -31,6 +41,8 @@ public class TrayService : IDisposable
     private readonly ToolStripMenuItem _pause1hItem;
     private readonly ToolStripMenuItem _resumeItem;
     private readonly ContextMenuStrip _contextMenu;
+    private readonly TrayMenuColors _colorTable;
+    private readonly TrayMenuRenderer _renderer;
     private readonly Icon? _normalIcon;
     private readonly Icon? _pausedIcon;
     private bool _menuOpen;
@@ -46,16 +58,14 @@ public class TrayService : IDisposable
 
     public TrayService()
     {
+        _colorTable = new TrayMenuColors();
+        _renderer = new TrayMenuRenderer(_colorTable);
+
         _contextMenu = new ContextMenuStrip();
         if (TrayMenuStylingEnabled)
         {
             _contextMenu.RenderMode = ToolStripRenderMode.Professional;
-            _contextMenu.Renderer = new TrayMenuRenderer();
-            if (UseDarkBackground)
-            {
-                _contextMenu.BackColor = TrayMenuBg;
-                _contextMenu.ForeColor = Color.White;
-            }
+            _contextMenu.Renderer = _renderer;
             if (UseCustomFont)
             {
                 _contextMenu.Font = new Font("Segoe UI", 9.5f);
@@ -81,12 +91,7 @@ public class TrayService : IDisposable
         if (TrayMenuStylingEnabled && pauseItem.DropDown is ToolStripDropDownMenu pauseMenu)
         {
             pauseMenu.RenderMode = ToolStripRenderMode.Professional;
-            pauseMenu.Renderer = _contextMenu.Renderer;
-            if (UseDarkBackground)
-            {
-                pauseMenu.BackColor = TrayMenuBg;
-                pauseMenu.ForeColor = Color.White;
-            }
+            pauseMenu.Renderer = _renderer;
             if (UseCustomFont)
             {
                 pauseMenu.Font = _contextMenu.Font;
@@ -117,12 +122,7 @@ public class TrayService : IDisposable
         if (TrayMenuStylingEnabled && clearItem.DropDown is ToolStripDropDownMenu clearMenu)
         {
             clearMenu.RenderMode = ToolStripRenderMode.Professional;
-            clearMenu.Renderer = _contextMenu.Renderer;
-            if (UseDarkBackground)
-            {
-                clearMenu.BackColor = TrayMenuBg;
-                clearMenu.ForeColor = Color.White;
-            }
+            clearMenu.Renderer = _renderer;
             if (UseCustomFont)
             {
                 clearMenu.Font = _contextMenu.Font;
@@ -150,6 +150,8 @@ public class TrayService : IDisposable
 
         _contextMenu.Opened += (_, _) => _menuOpen = true;
         _contextMenu.Closed += (_, _) => _menuOpen = false;
+
+        ApplyTheme(AppSettings.Load().TrayTheme);
 
         _normalIcon = LoadBestIcon("assets/app.ico", isPaused: false);
         _pausedIcon = LoadBestIcon("assets/app-paused.ico", isPaused: true);
@@ -179,6 +181,57 @@ public class TrayService : IDisposable
 
     public void SetTheme(string theme)
     {
+        ApplyTheme(theme);
+    }
+
+    private void ApplyTheme(string theme)
+    {
+        if (!TrayMenuStylingEnabled || !UseThemeBackground) return;
+
+        bool isLight = string.Equals(theme, "light", StringComparison.OrdinalIgnoreCase);
+        if (string.Equals(theme, "system", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(theme))
+        {
+            isLight = !IsWindowsDarkMode();
+        }
+
+        _renderer.SetTheme(isLight);
+        Color bg = isLight ? TrayMenuBgLight : TrayMenuBgDark;
+        Color fg = isLight ? TrayMenuTextLight : TrayMenuTextDark;
+
+        _contextMenu.BackColor = bg;
+        _contextMenu.ForeColor = fg;
+
+        UpdateMenuItemsTheme(_contextMenu.Items, bg, fg);
+    }
+
+    private static void UpdateMenuItemsTheme(ToolStripItemCollection items, Color bg, Color fg)
+    {
+        foreach (ToolStripItem item in items)
+        {
+            item.BackColor = bg;
+            item.ForeColor = fg;
+            if (item is ToolStripMenuItem menuItem && menuItem.HasDropDownItems)
+            {
+                menuItem.DropDown.BackColor = bg;
+                menuItem.DropDown.ForeColor = fg;
+                UpdateMenuItemsTheme(menuItem.DropDownItems, bg, fg);
+            }
+        }
+    }
+
+    private static bool IsWindowsDarkMode()
+    {
+        try
+        {
+            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+            var val = key?.GetValue("AppsUseLightTheme");
+            if (val is int intVal)
+            {
+                return intVal == 0;
+            }
+        }
+        catch { }
+        return true;
     }
 
     public void SetPaused(bool isPaused, string? label = null, int? activeMinutes = null)
@@ -326,10 +379,14 @@ public class TrayService : IDisposable
 
     private sealed class TrayMenuColors : ProfessionalColorTable
     {
-        private static Color Selection => UseHoverColour ? TrayMenuHover : SystemColors.Highlight;
+        public bool IsLight { get; set; }
+
+        private Color Selection => UseHoverColour
+            ? (IsLight ? TrayMenuHoverLight : TrayMenuHoverDark)
+            : SystemColors.Highlight;
 
         public override Color ToolStripDropDownBackground =>
-            UseDarkBackground ? TrayMenuBg : SystemColors.Menu;
+            UseThemeBackground ? (IsLight ? TrayMenuBgLight : TrayMenuBgDark) : SystemColors.Menu;
 
         public override Color MenuItemSelected => Selection;
         public override Color MenuItemSelectedGradientBegin => Selection;
@@ -339,7 +396,7 @@ public class TrayService : IDisposable
         public override Color MenuItemBorder => Color.Transparent;
 
         public override Color MenuBorder =>
-            UseBorderColour ? TrayMenuBorder : SystemColors.ControlDark;
+            UseBorderColour ? (IsLight ? TrayMenuBorderLight : TrayMenuBorderDark) : SystemColors.ControlDark;
 
         public override Color ImageMarginGradientBegin => Color.Transparent;
         public override Color ImageMarginGradientMiddle => Color.Transparent;
@@ -349,20 +406,29 @@ public class TrayService : IDisposable
         public override Color CheckSelectedBackground => Selection;
         public override Color CheckPressedBackground => Selection;
 
-        public override Color SeparatorDark => UseBorderColour ? TrayMenuBorder : SystemColors.ControlDark;
+        public override Color SeparatorDark =>
+            UseBorderColour ? (IsLight ? TrayMenuBorderLight : TrayMenuBorderDark) : SystemColors.ControlDark;
         public override Color SeparatorLight => Color.Transparent;
     }
 
     private sealed class TrayMenuRenderer : ToolStripProfessionalRenderer
     {
-        public TrayMenuRenderer() : base(new TrayMenuColors())
+        private readonly TrayMenuColors _colors;
+
+        public TrayMenuRenderer(TrayMenuColors colors) : base(colors)
         {
+            _colors = colors;
             RoundedEdges = false;
+        }
+
+        public void SetTheme(bool isLight)
+        {
+            _colors.IsLight = isLight;
         }
 
         protected override void OnRenderToolStripBackground(ToolStripRenderEventArgs e)
         {
-            if (TrayMenuCorner <= 0 || !UseDarkBackground)
+            if (TrayMenuCorner <= 0 || !UseThemeBackground)
             {
                 base.OnRenderToolStripBackground(e);
                 return;
@@ -371,7 +437,8 @@ public class TrayService : IDisposable
             var rect = new Rectangle(0, 0, e.ToolStrip.Width, e.ToolStrip.Height);
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
             using var path = RoundedPath(rect, TrayMenuCorner);
-            using var brush = new SolidBrush(TrayMenuBg);
+            Color bg = _colors.IsLight ? TrayMenuBgLight : TrayMenuBgDark;
+            using var brush = new SolidBrush(bg);
             e.Graphics.FillPath(brush, path);
         }
 
@@ -386,13 +453,14 @@ public class TrayService : IDisposable
             var rect = new Rectangle(0, 0, e.ToolStrip.Width - 1, e.ToolStrip.Height - 1);
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
             using var path = RoundedPath(rect, TrayMenuCorner);
-            using var pen = new Pen(TrayMenuBorder);
+            Color border = _colors.IsLight ? TrayMenuBorderLight : TrayMenuBorderDark;
+            using var pen = new Pen(border);
             e.Graphics.DrawPath(pen, path);
         }
 
         protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
         {
-            if (!UseDarkBackground)
+            if (!UseThemeBackground)
             {
                 base.OnRenderMenuItemBackground(e);
                 return;
@@ -402,7 +470,9 @@ public class TrayService : IDisposable
 
             if (e.Item is ToolStripMenuItem item && item.Selected && item.Enabled)
             {
-                Color selection = UseHoverColour ? TrayMenuHover : SystemColors.Highlight;
+                Color selection = UseHoverColour
+                    ? (_colors.IsLight ? TrayMenuHoverLight : TrayMenuHoverDark)
+                    : SystemColors.Highlight;
 
                 if (TrayMenuHoverRadius > 0)
                 {
@@ -431,25 +501,38 @@ public class TrayService : IDisposable
 
         protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
         {
-            if (UseDarkBackground)
+            if (UseThemeBackground)
             {
-                e.TextColor = e.Item.Enabled ? Color.White : Color.FromArgb(120, 120, 130);
+                if (e.Item.Selected && e.Item.Enabled)
+                {
+                    e.TextColor = Color.White;
+                }
+                else if (!e.Item.Enabled)
+                {
+                    e.TextColor = _colors.IsLight ? TrayMenuTextDisabledLight : TrayMenuTextDisabledDark;
+                }
+                else
+                {
+                    e.TextColor = _colors.IsLight ? TrayMenuTextLight : TrayMenuTextDark;
+                }
             }
             base.OnRenderItemText(e);
         }
 
         protected override void OnRenderArrow(ToolStripArrowRenderEventArgs e)
         {
-            if (UseDarkBackground)
+            if (UseThemeBackground)
             {
-                e.ArrowColor = Color.White;
+                e.ArrowColor = (e.Item?.Selected == true)
+                    ? Color.White
+                    : (_colors.IsLight ? Color.FromArgb(100, 105, 118) : Color.White);
             }
             base.OnRenderArrow(e);
         }
 
         protected override void OnRenderItemCheck(ToolStripItemImageRenderEventArgs e)
         {
-            if (!UseDarkBackground)
+            if (!UseThemeBackground)
             {
                 base.OnRenderItemCheck(e);
                 return;
@@ -484,7 +567,8 @@ public class TrayService : IDisposable
 
         protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)
         {
-            using var pen = new Pen(TrayMenuBorder);
+            Color sepColor = _colors.IsLight ? TrayMenuBorderLight : TrayMenuBorderDark;
+            using var pen = new Pen(sepColor);
             int y = e.Item.Height / 2;
             e.Graphics.DrawLine(pen, 8, y, e.Item.Width - 8, y);
         }
