@@ -1546,14 +1546,16 @@ window.getTagStats = getTagStats;
           const isCompact = document.documentElement.getAttribute('data-layout-preset') === 'compact' ||
                             (document.body && document.body.classList.contains('density-dense'));
           if (isCompact) {
+            if (el.id === 'previewModal') {
+              // preview-lightbox.js owns the dedicated preview expand/restore lifecycle.
+              // Skipping here prevents double-dispatching set_window_size in parallel.
+              continue;
+            }
             const zoom = typeof currentZoomLevel !== 'undefined' ? currentZoomLevel : 1.0;
             let optW = 540, optH = 460;
             if (el.id === 'editClipModal') { optW = 660; optH = 520; }
             else if (el.id === 'appPickerModal') { optW = 540; optH = 500; }
             else if (el.id === 'manageTagsModal') { optW = 540; optH = 480; }
-            // All compact dialogs share the 660x520 footprint so switching
-            // between them (preview -> edit) never re-grows the window.
-            else if (el.id === 'previewModal') { optW = 660; optH = 520; }
             const needW = Math.round(optW * zoom);
             const needH = Math.round(optH * zoom);
             // Seamless switch: preview may have expanded the window already —

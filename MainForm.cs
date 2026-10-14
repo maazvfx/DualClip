@@ -1162,6 +1162,20 @@ public partial class MainForm : Form
     /// </summary>
     private void StartBoundsMorph(Size targetSize, bool centerAtEnd, bool persistOnComplete = true)
     {
+        // Guard 1: If already actively morphing to this exact target size, do not interrupt and restart
+        if (_morphTimer != null && _morphTimer.Enabled && _morphToSize == targetSize)
+        {
+            DebugLogger.Log("Backend:Morph", $"StartBoundsMorph IGNORED: already morphing to {targetSize.Width}x{targetSize.Height}");
+            return;
+        }
+
+        // Guard 2: If the window is already at the target size, skip replaying an empty bounds animation
+        if (Size == targetSize)
+        {
+            DebugLogger.Log("Backend:Morph", $"StartBoundsMorph SKIPPED: window is already at {targetSize.Width}x{targetSize.Height}");
+            return;
+        }
+
         try { _morphTimer?.Stop(); } catch { }
         try
         {
