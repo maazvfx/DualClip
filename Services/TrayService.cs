@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
@@ -8,6 +9,19 @@ namespace DualClip.Services;
 
 public class TrayService : IDisposable
 {
+    // Switches matching approved style
+    private static readonly bool TrayMenuStylingEnabled = true;
+    private static readonly bool UseDarkBackground = true;
+    private static readonly bool UseBorderColour = true;
+    private static readonly bool UseHoverColour = false;
+    private static readonly bool UseCustomFont = true;
+    private static readonly int TrayMenuCorner = 8;
+    private static readonly int TrayMenuHoverRadius = 0;
+
+    private static readonly Color TrayMenuBg = ColorTranslator.FromHtml("#141416");
+    private static readonly Color TrayMenuHover = ColorTranslator.FromHtml("#3F3F46");
+    private static readonly Color TrayMenuBorder = ColorTranslator.FromHtml("#3C3C42");
+
     private readonly NotifyIcon _notifyIcon;
     private readonly ToolStripMenuItem _pauseItem;
     private readonly ToolStripMenuItem _pauseUntilResumeItem;
@@ -33,6 +47,22 @@ public class TrayService : IDisposable
     public TrayService()
     {
         _contextMenu = new ContextMenuStrip();
+        if (TrayMenuStylingEnabled)
+        {
+            _contextMenu.RenderMode = ToolStripRenderMode.Professional;
+            _contextMenu.Renderer = new TrayMenuRenderer();
+            if (UseDarkBackground)
+            {
+                _contextMenu.BackColor = TrayMenuBg;
+                _contextMenu.ForeColor = Color.White;
+            }
+            if (UseCustomFont)
+            {
+                _contextMenu.Font = new Font("Segoe UI", 9.5f);
+            }
+            _contextMenu.ShowImageMargin = false;
+            _contextMenu.ShowCheckMargin = true;
+        }
 
         var openItem = new ToolStripMenuItem("Open DualClip", null, (_, _) => ToggleRequested?.Invoke());
         _contextMenu.Items.Add(openItem);
@@ -47,6 +77,23 @@ public class TrayService : IDisposable
         {
             Enabled = false
         };
+
+        if (TrayMenuStylingEnabled && pauseItem.DropDown is ToolStripDropDownMenu pauseMenu)
+        {
+            pauseMenu.RenderMode = ToolStripRenderMode.Professional;
+            pauseMenu.Renderer = _contextMenu.Renderer;
+            if (UseDarkBackground)
+            {
+                pauseMenu.BackColor = TrayMenuBg;
+                pauseMenu.ForeColor = Color.White;
+            }
+            if (UseCustomFont)
+            {
+                pauseMenu.Font = _contextMenu.Font;
+            }
+            pauseMenu.ShowImageMargin = false;
+            pauseMenu.ShowCheckMargin = true;
+        }
 
         pauseItem.DropDownItems.Add(pauseUntilResume);
         pauseItem.DropDownItems.Add(pause5m);
@@ -66,6 +113,23 @@ public class TrayService : IDisposable
         _contextMenu.Items.Add(_pauseItem);
 
         var clearItem = new ToolStripMenuItem("Clear History");
+
+        if (TrayMenuStylingEnabled && clearItem.DropDown is ToolStripDropDownMenu clearMenu)
+        {
+            clearMenu.RenderMode = ToolStripRenderMode.Professional;
+            clearMenu.Renderer = _contextMenu.Renderer;
+            if (UseDarkBackground)
+            {
+                clearMenu.BackColor = TrayMenuBg;
+                clearMenu.ForeColor = Color.White;
+            }
+            if (UseCustomFont)
+            {
+                clearMenu.Font = _contextMenu.Font;
+            }
+            clearMenu.ShowImageMargin = false;
+            clearMenu.ShowCheckMargin = false;
+        }
 
         var clearOlder7 = new ToolStripMenuItem("Older Than 7 Days", null, (_, _) => ClearOlderThanRequested?.Invoke(7));
         var clearOlder30 = new ToolStripMenuItem("Older Than 30 Days", null, (_, _) => ClearOlderThanRequested?.Invoke(30));
@@ -240,5 +304,189 @@ public class TrayService : IDisposable
         _notifyIcon.Dispose();
         try { if (_pausedIcon != null) _pausedIcon.Dispose(); } catch { }
         try { if (_normalIcon != null && !ReferenceEquals(_normalIcon, SystemIcons.Application)) _normalIcon.Dispose(); } catch { }
+    }
+
+    private static GraphicsPath RoundedPath(Rectangle r, int radius)
+    {
+        var path = new GraphicsPath();
+        if (radius <= 0)
+        {
+            path.AddRectangle(r);
+            return path;
+        }
+
+        int d = radius * 2;
+        path.AddArc(r.X, r.Y, d, d, 180, 90);
+        path.AddArc(r.Right - d, r.Y, d, d, 270, 90);
+        path.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
+        path.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
+        path.CloseFigure();
+        return path;
+    }
+
+    private sealed class TrayMenuColors : ProfessionalColorTable
+    {
+        private static Color Selection => UseHoverColour ? TrayMenuHover : SystemColors.Highlight;
+
+        public override Color ToolStripDropDownBackground =>
+            UseDarkBackground ? TrayMenuBg : SystemColors.Menu;
+
+        public override Color MenuItemSelected => Selection;
+        public override Color MenuItemSelectedGradientBegin => Selection;
+        public override Color MenuItemSelectedGradientEnd => Selection;
+        public override Color MenuItemPressedGradientBegin => Selection;
+        public override Color MenuItemPressedGradientEnd => Selection;
+        public override Color MenuItemBorder => Color.Transparent;
+
+        public override Color MenuBorder =>
+            UseBorderColour ? TrayMenuBorder : SystemColors.ControlDark;
+
+        public override Color ImageMarginGradientBegin => Color.Transparent;
+        public override Color ImageMarginGradientMiddle => Color.Transparent;
+        public override Color ImageMarginGradientEnd => Color.Transparent;
+
+        public override Color CheckBackground => Selection;
+        public override Color CheckSelectedBackground => Selection;
+        public override Color CheckPressedBackground => Selection;
+
+        public override Color SeparatorDark => UseBorderColour ? TrayMenuBorder : SystemColors.ControlDark;
+        public override Color SeparatorLight => Color.Transparent;
+    }
+
+    private sealed class TrayMenuRenderer : ToolStripProfessionalRenderer
+    {
+        public TrayMenuRenderer() : base(new TrayMenuColors())
+        {
+            RoundedEdges = false;
+        }
+
+        protected override void OnRenderToolStripBackground(ToolStripRenderEventArgs e)
+        {
+            if (TrayMenuCorner <= 0 || !UseDarkBackground)
+            {
+                base.OnRenderToolStripBackground(e);
+                return;
+            }
+
+            var rect = new Rectangle(0, 0, e.ToolStrip.Width, e.ToolStrip.Height);
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            using var path = RoundedPath(rect, TrayMenuCorner);
+            using var brush = new SolidBrush(TrayMenuBg);
+            e.Graphics.FillPath(brush, path);
+        }
+
+        protected override void OnRenderToolStripBorder(ToolStripRenderEventArgs e)
+        {
+            if (!UseBorderColour)
+            {
+                base.OnRenderToolStripBorder(e);
+                return;
+            }
+
+            var rect = new Rectangle(0, 0, e.ToolStrip.Width - 1, e.ToolStrip.Height - 1);
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            using var path = RoundedPath(rect, TrayMenuCorner);
+            using var pen = new Pen(TrayMenuBorder);
+            e.Graphics.DrawPath(pen, path);
+        }
+
+        protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
+        {
+            if (!UseDarkBackground)
+            {
+                base.OnRenderMenuItemBackground(e);
+                return;
+            }
+
+            var bounds = e.Item.Bounds;
+
+            if (e.Item is ToolStripMenuItem item && item.Selected && item.Enabled)
+            {
+                Color selection = UseHoverColour ? TrayMenuHover : SystemColors.Highlight;
+
+                if (TrayMenuHoverRadius > 0)
+                {
+                    var pill = new Rectangle(
+                        bounds.X + 4,
+                        bounds.Y + 2,
+                        bounds.Width - 8,
+                        bounds.Height - 4);
+
+                    e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                    using var path = RoundedPath(pill, TrayMenuHoverRadius);
+                    using var brush = new SolidBrush(selection);
+                    e.Graphics.FillPath(brush, path);
+                }
+                else if (UseHoverColour)
+                {
+                    using var brush = new SolidBrush(selection);
+                    e.Graphics.FillRectangle(brush, bounds);
+                }
+                else
+                {
+                    base.OnRenderMenuItemBackground(e);
+                }
+            }
+        }
+
+        protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
+        {
+            if (UseDarkBackground)
+            {
+                e.TextColor = e.Item.Enabled ? Color.White : Color.FromArgb(120, 120, 130);
+            }
+            base.OnRenderItemText(e);
+        }
+
+        protected override void OnRenderArrow(ToolStripArrowRenderEventArgs e)
+        {
+            if (UseDarkBackground)
+            {
+                e.ArrowColor = Color.White;
+            }
+            base.OnRenderArrow(e);
+        }
+
+        protected override void OnRenderItemCheck(ToolStripItemImageRenderEventArgs e)
+        {
+            if (!UseDarkBackground)
+            {
+                base.OnRenderItemCheck(e);
+                return;
+            }
+
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+
+            var bounds = e.ImageRectangle;
+            int badgeSize = 14;
+            int x = bounds.X + (bounds.Width - badgeSize) / 2;
+            int y = bounds.Y + (bounds.Height - badgeSize) / 2;
+            var badgeRect = new Rectangle(x, y, badgeSize, badgeSize);
+
+            using var badgePath = RoundedPath(badgeRect, 3);
+            using var badgeBrush = new SolidBrush(Color.FromArgb(37, 99, 235));
+            g.FillPath(badgeBrush, badgePath);
+
+            using var pen = new Pen(Color.White, 1.8f)
+            {
+                StartCap = LineCap.Round,
+                EndCap = LineCap.Round,
+                LineJoin = LineJoin.Round
+            };
+            g.DrawLines(pen, new[]
+            {
+                new PointF(x + 3.2f, y + 7.2f),
+                new PointF(x + 5.8f, y + 9.8f),
+                new PointF(x + 10.8f, y + 4.2f)
+            });
+        }
+
+        protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)
+        {
+            using var pen = new Pen(TrayMenuBorder);
+            int y = e.Item.Height / 2;
+            e.Graphics.DrawLine(pen, 8, y, e.Item.Width - 8, y);
+        }
     }
 }
