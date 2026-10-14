@@ -1,4 +1,4 @@
-﻿// DualClip JS Module: settings-core.js
+// DualClip JS Module: settings-core.js
 // Auto-split from settings.js - complete functions, no mid-function cuts
 
 // --- DualClip Settings Views, Preferences & Hotkey Recording ---
@@ -373,9 +373,6 @@ function syncSettingsUiFromStorage() {
           else if (typeof window.applyWindowSizePreset === 'function') window.applyWindowSizePreset('compact');
         }
       } catch (e2) {}
-      try {
-        if (typeof isCollectionsBarHidden !== 'undefined' && !isCollectionsBarHidden && typeof toggleCollectionsBar === 'function') toggleCollectionsBar();
-      } catch (e3) {}
       if (typeof renderList === 'function') { try { renderList(); } catch (e4) {} }
       if (typeof renderVirtualWindow === 'function') { try { renderVirtualWindow(); } catch (e5) {} }
     }

@@ -159,7 +159,7 @@ public class TrayService : IDisposable
         _notifyIcon = new NotifyIcon
         {
             Icon = _normalIcon ?? SystemIcons.Application,
-            Text = "DualClip - Smart Clipboard Manager",
+            Text = "DualClip",
             Visible = true,
             ContextMenuStrip = _contextMenu
         };
@@ -247,7 +247,7 @@ public class TrayService : IDisposable
 
         string tooltip = isPaused
             ? (!string.IsNullOrWhiteSpace(label) ? $"DualClip - PAUSED ({label})" : "DualClip - PAUSED")
-            : "DualClip - Smart Clipboard Manager";
+            : "DualClip";
 
         // NotifyIcon text must be <= 63 characters on Windows
         if (tooltip.Length > 63)

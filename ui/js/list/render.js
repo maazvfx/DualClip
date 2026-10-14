@@ -2293,12 +2293,6 @@ function applyViewMode(mode) {
         applySidebarLayout('standard');
       }
     }
-    // Auto-collapse bottom collections bar in compact mode
-    if (typeof isCollectionsBarHidden !== 'undefined' && !isCollectionsBarHidden) {
-      if (typeof toggleCollectionsBar === 'function') {
-        toggleCollectionsBar();
-      }
-    }
     toggleLivePreview(false);
   } else {
     if (typeof changeQuickViewLayoutPreset === 'function') {
