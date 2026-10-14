@@ -1156,11 +1156,30 @@ public partial class MainForm : Form
         }
     }
 
+    private static Point CalculateInPlaceTargetLocation(Point currentLoc, Size currentSize, Size targetSize, Rectangle workingArea)
+    {
+        int currentCenterX = currentLoc.X + currentSize.Width / 2;
+        int currentCenterY = currentLoc.Y + currentSize.Height / 2;
+
+        int targetX = currentCenterX - targetSize.Width / 2;
+        int targetY = currentCenterY - targetSize.Height / 2;
+
+        int minX = workingArea.X + WindowPlacement.EdgeMargin;
+        int maxX = workingArea.Right - targetSize.Width - WindowPlacement.EdgeMargin;
+        int minY = workingArea.Y + WindowPlacement.EdgeMargin;
+        int maxY = workingArea.Bottom - targetSize.Height - WindowPlacement.EdgeMargin;
+
+        int clampedX = maxX >= minX ? Math.Clamp(targetX, minX, maxX) : minX;
+        int clampedY = maxY >= minY ? Math.Clamp(targetY, minY, maxY) : minY;
+
+        return new Point(clampedX, clampedY);
+    }
+
     /// <summary>
-    /// Smooth ~150ms ease-out tween of window bounds (view-mode switches).
-    /// Grows/shrinks and glides to center in one motion instead of snap-then-jump.
+    /// Smooth ~180ms ease-out tween of window bounds.
+    /// Grows/shrinks anchored symmetrically on the current window center.
     /// </summary>
-    private void StartBoundsMorph(Size targetSize, bool centerAtEnd, bool persistOnComplete = true)
+    private void StartBoundsMorph(Size targetSize, bool centerInPlace = true, bool persistOnComplete = true)
     {
         // Guard 1: If already actively morphing to this exact target size, do not interrupt and restart
         if (_morphTimer != null && _morphTimer.Enabled && _morphToSize == targetSize)
@@ -1183,16 +1202,16 @@ public partial class MainForm : Form
             _morphFromLoc = Location;
             _morphFromSize = Size;
             _morphToSize = targetSize;
-            _morphToLoc = centerAtEnd
-                ? WindowPlacement.ClampToWorkingArea(WindowPlacement.CenterIn(targetSize, area), targetSize, area)
+            _morphToLoc = centerInPlace
+                ? CalculateInPlaceTargetLocation(_morphFromLoc, _morphFromSize, targetSize, area)
                 : _morphFromLoc;
             _suppressResizeSave = true;
             _morphPersistOnComplete = persistOnComplete;
             _morphTickCount = 0;
             _lastMorphTickMs = 0;
             _morphStopwatch.Restart();
-            DebugLogger.Log("Backend:Morph", $"StartBoundsMorph: from {_morphFromSize.Width}x{_morphFromSize.Height} at ({_morphFromLoc.X},{_morphFromLoc.Y}) -> to {targetSize.Width}x{targetSize.Height} at ({_morphToLoc.X},{_morphToLoc.Y}), center={centerAtEnd}, persist={persistOnComplete}");
-            _morphTimer ??= new System.Windows.Forms.Timer { Interval = 15 };
+            DebugLogger.Log("Backend:Morph", $"StartBoundsMorph: from {_morphFromSize.Width}x{_morphFromSize.Height} at ({_morphFromLoc.X},{_morphFromLoc.Y}) -> to {targetSize.Width}x{targetSize.Height} at ({_morphToLoc.X},{_morphToLoc.Y}), inPlace={centerInPlace}, persist={persistOnComplete}");
+            _morphTimer ??= new System.Windows.Forms.Timer { Interval = 16 };
             _morphTimer.Tick -= MorphTimerTick;
             _morphTimer.Tick += MorphTimerTick;
             _morphTimer.Start();
