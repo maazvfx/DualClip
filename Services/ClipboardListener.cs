@@ -1092,7 +1092,8 @@ public class ClipboardListener : IDisposable
                     string targetCol = ResolveAutoSortCollection(null, proc, title);
 
                     string track = "manual";
-                    var (id, isNew) = _db.AddOrBumpImage(hash, imageFilePath, thumbnailData, dims, sizeStr, track, proc, title, targetCol);
+                    // Exclude window title for screenshots/images, preserving source process
+                    var (id, isNew) = _db.AddOrBumpImage(hash, imageFilePath, thumbnailData, dims, sizeStr, track, proc, null, targetCol);
                     if (isNew) _db.EnforceMaxClipsIfNeeded(MaxClipsLimit);
                     if (id > 0)
                     {
@@ -1159,7 +1160,8 @@ public class ClipboardListener : IDisposable
 
             string targetCol = ResolveAutoSortCollection(null, proc, title);
             string track = "manual";
-            var (id, isNew) = _db.AddOrBumpImage(hash, imageFilePath, thumbnailData, dims, sizeStr, track, proc, title, targetCol);
+            // Exclude window title for screenshots/images, preserving source process
+            var (id, isNew) = _db.AddOrBumpImage(hash, imageFilePath, thumbnailData, dims, sizeStr, track, proc, null, targetCol);
             if (isNew) _db.EnforceMaxClipsIfNeeded(MaxClipsLimit);
             if (id > 0)
             {
@@ -1241,7 +1243,8 @@ public class ClipboardListener : IDisposable
             string targetCol = ResolveAutoSortCollection(svgMarkup, proc, title);
 
             string track = "manual";
-            var (id, isNew) = _db.AddOrBumpSvg(hash, svgMarkup, imageFilePath, thumbnailData, dims, sizeStr, track, proc, title, targetCol);
+            // Exclude window title for screenshots/images, preserving source process
+            var (id, isNew) = _db.AddOrBumpSvg(hash, svgMarkup, imageFilePath, thumbnailData, dims, sizeStr, track, proc, null, targetCol);
             if (isNew) _db.EnforceMaxClipsIfNeeded(MaxClipsLimit);
             if (id > 0)
             {

@@ -130,7 +130,7 @@ function openFullPreviewModal(clip) {
     if (wrapBtn) wrapBtn.style.display = 'none';
     if (zoomGroup) zoomGroup.style.display = 'flex';
     const titleEl = document.getElementById('prevTitle');
-    if (titleEl) titleEl.innerText = clip.title || 'Image Preview';
+    if (titleEl) titleEl.innerText = clip.custom_title || 'Image Preview';
 
     zoomMode = 'fit';
     userZoom = 1.0;
@@ -184,7 +184,7 @@ function openFullPreviewModal(clip) {
       naturalHeight = img.naturalHeight || 0;
       revealImageWhenSettled();
     };
-    img.alt = clip.title || 'Image preview';
+    img.alt = clip.custom_title || 'Image preview';
     try { img.style.opacity = '0'; } catch {}
     img.src = initialSrc;
     if (img.complete && img.naturalWidth) {

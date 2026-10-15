@@ -2149,8 +2149,11 @@ function syncLivePreview() {
     srcApp = meta && meta.src_process ? meta.src_process : '';
   } catch (e) {}
   if (srcApp && srcApp.toLowerCase().endsWith('.exe')) srcApp = srcApp.slice(0, -4);
-  const customTitle = (clip.custom_title && clip.custom_title.trim()) ? clip.custom_title.trim() : '';
-  if (appLabel) appLabel.textContent = customTitle ? (customTitle + ' • ' + (srcApp || 'DualClip')) : (srcApp || clip.title || 'DualClip');
+  if (clip.is_image) {
+    if (appLabel) appLabel.textContent = customTitle ? (customTitle + ' • ' + (srcApp || 'Image')) : (srcApp || 'Image');
+  } else {
+    if (appLabel) appLabel.textContent = customTitle ? (customTitle + ' • ' + (srcApp || 'DualClip')) : (srcApp || clip.title || 'DualClip');
+  }
 
   if (clip.is_image) {
     if (textContent) textContent.style.display = 'none';
