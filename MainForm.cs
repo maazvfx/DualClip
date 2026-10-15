@@ -1184,14 +1184,12 @@ public partial class MainForm : Form
         // Guard 1: If already actively morphing to this exact target size, do not interrupt and restart
         if (_morphTimer != null && _morphTimer.Enabled && _morphToSize == targetSize)
         {
-            DebugLogger.Log("Backend:Morph", $"StartBoundsMorph IGNORED: already morphing to {targetSize.Width}x{targetSize.Height}");
             return;
         }
 
         // Guard 2: If the window is already at the target size, skip replaying an empty bounds animation
         if (Size == targetSize)
         {
-            DebugLogger.Log("Backend:Morph", $"StartBoundsMorph SKIPPED: window is already at {targetSize.Width}x{targetSize.Height}");
             return;
         }
 
@@ -1210,15 +1208,13 @@ public partial class MainForm : Form
             _morphTickCount = 0;
             _lastMorphTickMs = 0;
             _morphStopwatch.Restart();
-            DebugLogger.Log("Backend:Morph", $"StartBoundsMorph: from {_morphFromSize.Width}x{_morphFromSize.Height} at ({_morphFromLoc.X},{_morphFromLoc.Y}) -> to {targetSize.Width}x{targetSize.Height} at ({_morphToLoc.X},{_morphToLoc.Y}), inPlace={centerInPlace}, persist={persistOnComplete}");
             _morphTimer ??= new System.Windows.Forms.Timer { Interval = 16 };
             _morphTimer.Tick -= MorphTimerTick;
             _morphTimer.Tick += MorphTimerTick;
             _morphTimer.Start();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            DebugLogger.Log("Backend:Morph", $"StartBoundsMorph ERROR: {ex.Message}");
             _suppressResizeSave = false;
         }
     }
@@ -1239,13 +1235,11 @@ public partial class MainForm : Form
             int curW = (int)Math.Round(_morphFromSize.Width + (_morphToSize.Width - _morphFromSize.Width) * k);
             int curH = (int)Math.Round(_morphFromSize.Height + (_morphToSize.Height - _morphFromSize.Height) * k);
             SetBounds(curX, curY, curW, curH, BoundsSpecified.All);
-            DebugLogger.Log("Backend:Morph", $"Tick #{_morphTickCount}: delta={delta:F1}ms, elapsed={elapsed:F1}ms, bounds=({curX},{curY},{curW}x{curH}), t={t:F2}");
             if (t >= 1.0)
             {
                 try { _morphTimer?.Stop(); } catch { }
                 _morphStopwatch.Stop();
                 _suppressResizeSave = false;
-                DebugLogger.Log("Backend:Morph", $"Morph FINISHED in {elapsed:F1}ms across {_morphTickCount} ticks.");
                 // Only a persisting morph may write the remembered size; a transient one
                 // (Settings) must leave AppSettings untouched.
                 if (_morphPersistOnComplete)
@@ -1264,9 +1258,8 @@ public partial class MainForm : Form
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            DebugLogger.Log("Backend:Morph", $"MorphTimerTick ERROR: {ex.Message}");
             try { _morphTimer?.Stop(); } catch { }
             _morphStopwatch.Stop();
             _suppressResizeSave = false;

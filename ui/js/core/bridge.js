@@ -188,7 +188,6 @@
       get_blocklist: () => callHost('get_blocklist', []),
       set_double_copy_override: (enabled) => callHost('set_double_copy_override', [enabled]),
       get_double_copy_override: () => callHost('get_double_copy_override', []),
-      debug_log: (tag, message) => callHost('debug_log', [tag, message]),
 
       browse_application: () => callHost('browse_application', []),
        get_clip_temp_file: (clipId) => callHost('get_clip_temp_file', [clipId]),
@@ -241,20 +240,10 @@
 
   // Expose bridge helper on window and DC namespace
   window.callHost = callHost;
-  window.dcDebugLog = function(tag, msg) {
-    try {
-      if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.debug_log === 'function') {
-        window.pywebview.api.debug_log(tag, msg).catch(() => {});
-      } else if (typeof callHost === 'function') {
-        callHost('debug_log', [tag, msg]);
-      }
-    } catch (_) {}
-  };
   window.DC = window.DC || {};
   window.DC.bridge = {
     callHost,
-    pendingCalls,
-    dcDebugLog: window.dcDebugLog
+    pendingCalls
   };
 
   // Trigger ready event

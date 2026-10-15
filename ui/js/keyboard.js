@@ -574,7 +574,6 @@ document.addEventListener('keydown', (e) => {
     if (isPrevOpen) {
       // Spacebar with preview open: close it (leave focus off inputs so Space reopens)
       e.preventDefault();
-      if (window.dcDebugLog) window.dcDebugLog('Frontend:Keyboard', 'Space pressed -> closing active preview modal');
       if (typeof closePreviewModal === 'function') closePreviewModal();
       return;
     }
@@ -583,8 +582,6 @@ document.addEventListener('keydown', (e) => {
 
     // Shield against other open dialogs: never pop QuickLook over them
     if (isModalOrSettingsOpen) return;
-
-    if (window.dcDebugLog) window.dcDebugLog('Frontend:Keyboard', 'Space pressed -> opening preview modal for selected item');
 
     // Spacebar QuickLook: open the in-app preview (detach via the pop-out button).
     // Closing an open preview with Space always works.
