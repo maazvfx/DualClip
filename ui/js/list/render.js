@@ -1828,13 +1828,13 @@ function createRowElement(clip, idx, forcedHeight, visualRowIdx) {
     <div class="row-inner">
       <div class="row-headline">
         ${topBodyHtml}
-        <span class="compact-time" title="${ageTime}">${ageTime}</span>
         <div class="actions-right actions-group" onclick="event.stopPropagation()">
           ${collectionBadgeHtml}
           ${countBadgeHtml}
           <button class="row-action-btn btn-star favorite-btn ${isFavorite ? 'active favorite' : ''}" title="${isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}" onclick="quickToggleFavorite(event, ${idx})">${starSvg}</button>
           <button class="row-action-btn btn-pin pin-btn ${isPinned ? 'active pinned' : ''}" title="${isPinned ? 'Unpin from Top' : 'Pin to Top'}" onclick="quickTogglePin(event, ${idx})">${pinSvg}</button>
         </div>
+        <span class="compact-time" title="${ageTime}">${ageTime}</span>
       </div>
       <div class="row-footer-line" dir="ltr">
         <div class="meta-left">
