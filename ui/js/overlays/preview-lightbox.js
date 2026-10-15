@@ -379,12 +379,11 @@ function installImageLightboxHandlers(body, img) {
   lightboxWheelHandler = (e) => {
     if (isDockTarget(e.target)) return;
     e.preventDefault();
-    // Dampened zoom: normalize trackpad/wheel deltas to [-1, 1] notches so a
-    // full wheel tick moves only 0.08 (was a jumpy fixed 0.2).
+    // Invert deltaY: scrolling up (deltaY < 0) zooms in, scrolling down (deltaY > 0) zooms out.
     const raw = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
     if (!raw) return;
     const notches = Math.max(-1, Math.min(1, raw / 100));
-    changePreviewZoom(notches * 0.12);
+    changePreviewZoom(-notches * 0.12);
   };
   body.addEventListener('wheel', lightboxWheelHandler, { passive: false });
 
