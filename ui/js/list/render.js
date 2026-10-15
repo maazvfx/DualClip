@@ -2293,7 +2293,7 @@ function updateViewModeButton(mode) {
 function applyViewMode(mode) {
   if (mode === 'compact') {
     if (typeof changeQuickViewLayoutPreset === 'function') {
-      changeQuickViewLayoutPreset('compact', false, true);
+      changeQuickViewLayoutPreset('compact', false, false);
     }
     // Auto-close left sidebar view in compact mode (window is only 360px wide)
     if (typeof getSidebarLayoutSetting === 'function' && getSidebarLayoutSetting() === 'sidebar') {
@@ -2304,7 +2304,7 @@ function applyViewMode(mode) {
     toggleLivePreview(false);
   } else {
     if (typeof changeQuickViewLayoutPreset === 'function') {
-      changeQuickViewLayoutPreset('standard', false, true);
+      changeQuickViewLayoutPreset('standard', false, false);
     }
     toggleLivePreview(false);
   }
