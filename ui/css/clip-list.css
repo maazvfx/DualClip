@@ -1304,6 +1304,7 @@
     html[data-layout-preset="compact"] .row-headline {
       display: flex !important;
       width: 100% !important;
+      flex: 1 1 100% !important;
       justify-content: space-between !important;
       align-items: center !important;
     }

@@ -721,21 +721,21 @@
       pointer-events: auto !important;
     }
 
-    /* Ultra-Dense with visible details: render footer inline on the headline flow */
-    html:not([data-clip-details="hidden"]) body.density-dense .row-inner {
+    /* Ultra-Dense with visible details: render footer inline on the headline flow (Standard mode only) */
+    html:not([data-layout-preset="compact"]):not([data-clip-details="hidden"]) body.density-dense .row-inner {
       display: flex !important;
       flex-direction: row !important;
       align-items: center !important;
       width: 100% !important;
       overflow: hidden !important;
     }
-    html:not([data-clip-details="hidden"]) body.density-dense .row-headline {
+    html:not([data-layout-preset="compact"]):not([data-clip-details="hidden"]) body.density-dense .row-headline {
       display: inline-flex !important;
       align-items: center !important;
       flex: 1 1 auto !important;
       min-width: 0 !important;
     }
-    html:not([data-clip-details="hidden"]) body.density-dense .row-footer-line {
+    html:not([data-layout-preset="compact"]):not([data-clip-details="hidden"]) body.density-dense .row-footer-line {
       display: inline-flex !important;
       align-items: center !important;
       flex: 0 0 auto !important;
@@ -745,13 +745,13 @@
       overflow: hidden !important;
       text-overflow: ellipsis !important;
     }
-    html:not([data-clip-details="hidden"]) body.density-dense .row-footer-line .meta-left {
+    html:not([data-layout-preset="compact"]):not([data-clip-details="hidden"]) body.density-dense .row-footer-line .meta-left {
       font-size: 10px !important;
       opacity: 0.85 !important;
       pointer-events: none !important;
     }
-    html:not([data-clip-details="hidden"]) body.density-dense .row-footer-line .meta-app,
-    html:not([data-clip-details="hidden"]) body.density-dense .row-footer-line .meta-time {
+    html:not([data-layout-preset="compact"]):not([data-clip-details="hidden"]) body.density-dense .row-footer-line .meta-app,
+    html:not([data-layout-preset="compact"]):not([data-clip-details="hidden"]) body.density-dense .row-footer-line .meta-time {
       opacity: 0.85 !important;
       pointer-events: none !important;
     }
