@@ -1824,6 +1824,7 @@ function createRowElement(clip, idx, forcedHeight, visualRowIdx) {
     <div class="row-inner">
       <div class="row-headline">
         ${topBodyHtml}
+        <span class="compact-time" title="${ageTime}">${ageTime}</span>
         <div class="actions-right actions-group" onclick="event.stopPropagation()">
           ${collectionBadgeHtml}
           ${countBadgeHtml}
