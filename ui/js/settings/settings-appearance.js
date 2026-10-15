@@ -767,16 +767,7 @@ function changeUnifiedClipDetails(mode) {
   if (typeof changeClipDetailsSetting === 'function') {
     try { changeClipDetailsSetting(m.details, false); } catch (e) {}
   }
-  try {
-    if (m.details === 'auto') {
-      localStorage.setItem('dualclip_standard_clip_details', 'auto');
-      localStorage.setItem('dualclip_compact_clip_details', 'auto');
-    } else if (curPreset === 'compact') {
-      localStorage.setItem('dualclip_compact_clip_details', m.details);
-    } else {
-      localStorage.setItem('dualclip_standard_clip_details', m.details);
-    }
-  } catch (e) {}
+  try { localStorage.setItem('dualclip_standard_clip_details', m.details); } catch (e) {}
   if (m.source && typeof changeAppSourceDisplay === 'function') {
     try { changeAppSourceDisplay(m.source, false, true); } catch (e) {}
   }
