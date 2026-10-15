@@ -2425,11 +2425,11 @@ public partial class MainForm : Form
 
         string ageLabel;
         var elapsed = DateTime.UtcNow - lastUsedUtc;
-        if (elapsed.TotalSeconds < 60) ageLabel = "Just now";
-        else if (elapsed.TotalMinutes < 60) ageLabel = $"{(int)elapsed.TotalMinutes}m ago";
-        else if (elapsed.TotalHours < 24 && diffDays <= 0) ageLabel = $"{(int)elapsed.TotalHours}h ago";
+        if (elapsed.TotalSeconds < 60) ageLabel = "Now";
+        else if (elapsed.TotalMinutes < 60) ageLabel = $"{(int)elapsed.TotalMinutes}m";
+        else if (elapsed.TotalHours < 24 && diffDays <= 0) ageLabel = $"{(int)elapsed.TotalHours}h";
         else if (diffDays <= 1) ageLabel = "Yesterday";
-        else if (diffDays < 7) ageLabel = $"{(int)diffDays}d ago";
+        else if (diffDays < 7) ageLabel = $"{(int)diffDays}d";
         else ageLabel = lastUsedLocal.ToString("MMM d");
 
         return new

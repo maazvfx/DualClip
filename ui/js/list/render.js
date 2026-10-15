@@ -1811,7 +1811,8 @@ function createRowElement(clip, idx, forcedHeight, visualRowIdx) {
   const rawApp = clip.src_process || (clip.is_image ? 'Image' : 'DualClip');
   const sourceApp = escapeHtml(formatAppDisplayName(rawApp));
   const appIconHtml = typeof getAppIconSvg === 'function' ? getAppIconSvg(rawApp, clip.app_icon) : '';
-  const ageTime = escapeHtml(clip.age_label || 'Just now');
+  const formatShortAge = (val) => String(val || 'Now').replace(/^Just\s+/i, '').replace(/\s+ago$/i, '');
+  const ageTime = escapeHtml(formatShortAge(clip.age_label));
 
   // 2-line structure: Headline (Content + Star/Pin) and Footer Line (App • Time • Label)
   const badgePos = (typeof visualRowIdx === 'number' ? visualRowIdx : idx) + 1;

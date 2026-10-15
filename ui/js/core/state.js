@@ -85,8 +85,8 @@ function formatClipForUI(c) {
         const now = new Date();
         const diffMs = now - d;
         const diffSec = Math.floor(diffMs / 1000);
-        if (diffSec < 0 || diffSec < 60) return 'Just now';
-        if (diffSec < 3600) return `${Math.floor(diffSec/60)}m ago`;
+        if (diffSec < 0 || diffSec < 60) return 'Now';
+        if (diffSec < 3600) return `${Math.floor(diffSec/60)}m`;
         
         const nowMid = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
         const dMid = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -94,7 +94,7 @@ function formatClipForUI(c) {
 
         if (diffDays <= 0) {
           const h = Math.floor(diffSec/3600);
-          if (h < 6) return `${h}h ago`;
+          if (h < 6) return `${h}h`;
           const hh = String(d.getHours()).padStart(2,'0');
           const mm = String(d.getMinutes()).padStart(2,'0');
           return `${hh}:${mm}`;
@@ -106,7 +106,7 @@ function formatClipForUI(c) {
         }
         const opts = now.getFullYear() !== d.getFullYear() ? { month: 'short', day: 'numeric', year: 'numeric' } : { month: 'short', day: 'numeric' };
         return d.toLocaleDateString('en-US', opts);
-      } catch(e) { return c.age_label || 'Just now'; }
+      } catch(e) { return c.age_label || 'Now'; }
     })(),
     pinned: c.pinned ? 1 : 0,
     // Real tag assignments from clip_tags/tags. Distinct from `nickname`,
