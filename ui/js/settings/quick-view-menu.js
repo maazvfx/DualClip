@@ -192,13 +192,8 @@ function changeQuickViewLayoutPreset(value, hydrateOnly = false, animate = false
     clearTimeout(window._modeMorphTimer);
     window._modeMorphTimer = setTimeout(function() {
       window._isModeMorphing = false;
-      try {
-        if (typeof invalidateCachedHeight === 'function') invalidateCachedHeight();
-        if (typeof invalidateUsableWidthCache === 'function') invalidateUsableWidthCache();
-        if (typeof renderList === 'function') renderList();
-        else if (typeof renderVirtualWindow === 'function') renderVirtualWindow();
-      } catch (e) {}
-    }, 100);
+      try { if (typeof renderList === 'function') renderList(); else if (typeof renderVirtualWindow === 'function') renderVirtualWindow(); } catch (e) {}
+    }, 220);
   }
   try {
     if (typeof applyQuickViewWindowSize === 'function') applyQuickViewWindowSize(b.windowSize, animate === true);
@@ -236,12 +231,8 @@ function changeQuickViewLayoutPreset(value, hydrateOnly = false, animate = false
   try { if (typeof changeZoomSetting === 'function') changeZoomSetting(b.zoom, false); } catch (e6) {}
   if (typeof syncQuickViewMenuValues === 'function') { try { syncQuickViewMenuValues(); } catch (e7) {} }
   if (animate !== true) {
-    try {
-      if (typeof invalidateCachedHeight === 'function') invalidateCachedHeight();
-      if (typeof invalidateUsableWidthCache === 'function') invalidateUsableWidthCache();
-    } catch (_) {}
     if (typeof renderList === 'function') { try { renderList(); } catch (e8) {} }
-    else if (typeof renderVirtualWindow === 'function') { try { renderVirtualWindow(); } catch (e9) {} }
+    if (typeof renderVirtualWindow === 'function') { try { renderVirtualWindow(); } catch (e9) {} }
   }
   if (typeof notifySettingSaved === 'function') {
     notifySettingSaved('qvLayoutPreset');

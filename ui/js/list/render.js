@@ -773,9 +773,6 @@ function renderList(opts) {
   // visible snap on the way back to History. Defer instead: closeSettingsView renders once
   // the list is visible and has real dimensions again.
   try {
-    if (window._isModeMorphing) {
-      return;
-    }
     if (document.body.classList.contains('in-settings') || container.clientHeight === 0) {
       return;
     }
