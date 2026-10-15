@@ -135,7 +135,7 @@ function changeClipDetailsSetting(value, isProgrammatic = false) {
 function changeQuickViewLayoutPreset(value, hydrateOnly = false, animate) {
   if (!value) return;
   if (animate === undefined) {
-    try { animate = localStorage.getItem('dualclip_animate_mode_switch') === '1'; } catch (_) { animate = false; }
+    try { animate = localStorage.getItem('dualclip_animate_mode_switch') !== '0'; } catch (_) { animate = true; }
   }
   // Legacy Large value migrates to Standard (Large mode removed).
   let previousPreset = 'standard';

@@ -775,13 +775,6 @@
                   <option value="last">Remember Last Position</option>
                 </select>
               </div>
-              <div class="notion-setting-row" id="row_reset_window_size">
-                <div class="setting-text-col">
-                  <div class="setting-title">Reset Window Size</div>
-                  <div class="setting-caption">Restore default dimensions for the current mode (Compact or Standard)</div>
-                </div>
-                <button type="button" class="btn-sm st-btn-secondary" style="height: 28px; flex-shrink: 0;" onclick="resetWindowSizeCurrentMode()">Reset Size</button>
-              </div>
               <div class="notion-setting-row" id="row_animate_mode_switch">
                 <div class="setting-text-col">
                   <div class="setting-title">Animate View Mode Switch</div>
@@ -790,6 +783,13 @@
                 <div class="st-toggle" id="stAnimateModeSwitchToggle" onclick="toggleAnimateModeSwitchSetting(this)">
                   <div class="toggle-knob"></div>
                 </div>
+              </div>
+              <div class="notion-setting-row" id="row_reset_window_size">
+                <div class="setting-text-col">
+                  <div class="setting-title">Reset Window Size</div>
+                  <div class="setting-caption">Restore default dimensions for the current mode (Compact or Standard)</div>
+                </div>
+                <button type="button" class="btn-sm st-btn-secondary" style="height: 28px; flex-shrink: 0;" onclick="resetWindowSizeCurrentMode()">Reset Size</button>
               </div>
             </div>
             <div id="hotkeyWinVWarning" style="display: none; margin: 4px 0 6px 0; padding: 6px 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 6px; font-size: 11px; line-height: 1.4; color: var(--text-muted);">

@@ -1,7 +1,10 @@
 function createBooleanAppearanceSetting(config) {
-  const { storageKey, className, attrName, toggleId, notifyKey } = config;
+  const { storageKey, className, attrName, toggleId, notifyKey, defaultValue = false } = config;
 
-  const getVal = () => localStorage.getItem(storageKey) === '1';
+  const getVal = () => {
+    const raw = localStorage.getItem(storageKey);
+    return raw === null ? !!defaultValue : raw === '1';
+  };
 
   const applyVal = (enabled, notify = true) => {
     const isVal = !!enabled;
@@ -73,7 +76,8 @@ const toggleHideWindowBorderSetting = _borderSetting.toggleVal;
 const _animateModeSwitchSetting = createBooleanAppearanceSetting({
   storageKey: 'dualclip_animate_mode_switch',
   toggleId: 'stAnimateModeSwitchToggle',
-  notifyKey: 'row_animate_mode_switch'
+  notifyKey: 'row_animate_mode_switch',
+  defaultValue: true
 });
 const getAnimateModeSwitchSetting = _animateModeSwitchSetting.getVal;
 const applyAnimateModeSwitchSetting = _animateModeSwitchSetting.applyVal;

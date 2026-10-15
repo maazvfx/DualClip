@@ -191,7 +191,7 @@ function syncSettingsUiFromStorage() {
       }).catch(() => {});
     }
 
-    const animateModeSwitch = localStorage.getItem('dualclip_animate_mode_switch') === '1';
+    const animateModeSwitch = localStorage.getItem('dualclip_animate_mode_switch') !== '0';
     const amsTgl = document.getElementById('stAnimateModeSwitchToggle');
     if (amsTgl) amsTgl.classList.toggle('on', animateModeSwitch);
 

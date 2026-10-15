@@ -2291,7 +2291,7 @@ function updateViewModeButton(mode) {
 }
 
 function applyViewMode(mode) {
-  const animate = localStorage.getItem('dualclip_animate_mode_switch') === '1';
+  const animate = localStorage.getItem('dualclip_animate_mode_switch') !== '0';
   if (mode === 'compact') {
     if (typeof changeQuickViewLayoutPreset === 'function') {
       changeQuickViewLayoutPreset('compact', false, animate);
