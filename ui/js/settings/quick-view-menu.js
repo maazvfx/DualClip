@@ -356,9 +356,12 @@ function syncQuickViewMenuValues() {
     });
   });
   // Text Shade removed — default standard styling applies
-  document.documentElement.setAttribute('data-text-shade', 'standard');
-  const clipDetails = getQuickViewStoredValue('dualclip_clip_details', 'hidden');
-  document.documentElement.setAttribute('data-clip-details', clipDetails);
+  const clipDetails = getQuickViewStoredValue('dualclip_clip_details', 'auto');
+  const curPreset = getQuickViewStoredValue('dualclip_layout_preset', 'standard');
+  const effectiveDetails = (clipDetails === 'auto')
+    ? (curPreset === 'compact' ? 'hidden' : 'app-time')
+    : clipDetails;
+  document.documentElement.setAttribute('data-clip-details', effectiveDetails);
   // settings.json and localStorage sync: Local UI state takes priority.
   // When the user has a saved local preference, push it into the backend to repair drift rather than stomping.
   try {
@@ -440,6 +443,9 @@ function syncQuickViewMenuValues() {
     const stZebra = document.getElementById('stZebraToggle');
     if (stZebra) stZebra.classList.toggle('on', zebra !== 'off');
     document.documentElement.setAttribute('data-zebra', zebra);
+    if (typeof syncUnifiedClipDetailsSelect === 'function') {
+      try { syncUnifiedClipDetailsSelect(); } catch (_) {}
+    }
   } catch (e) {}
 }
 (function initQuickViewMenu() {

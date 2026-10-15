@@ -1,4 +1,4 @@
-﻿/* Modal Overlay (Dedicated Preview) */
+/* Modal Overlay (Dedicated Preview) */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -620,6 +620,14 @@
       background: var(--primary, #6366f1) !important;
       color: var(--primary-text, #ffffff) !important;
       font-weight: 600;
+    }
+    .custom-dropdown-menu .opt-item.disabled,
+    .custom-dropdown-menu .opt-item[aria-disabled="true"] {
+      opacity: 0.42 !important;
+      cursor: not-allowed !important;
+      pointer-events: none !important;
+      color: var(--text-muted, #71717a) !important;
+      background: transparent !important;
     }
 
     [data-theme="light"] .custom-select-btn,

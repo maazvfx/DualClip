@@ -702,26 +702,58 @@ function resolveUnifiedClipDetails() {
   } catch (e) {
     d = 'auto'; s = 'both';
   }
+  const curPreset = (typeof document !== 'undefined' && document.documentElement && document.documentElement.getAttribute('data-layout-preset')) || (typeof localStorage !== 'undefined' && localStorage.getItem('dualclip_layout_preset')) || 'standard';
+  const isCompact = (curPreset === 'compact');
+
   if (d === 'auto' || d === 'app-time') {
-    if (s === 'icon_only') return 'icon_time';
-    if (s === 'name_only') return 'name_time';
+    if (!isCompact && s === 'icon_only') return 'icon_time';
+    if (!isCompact && s === 'name_only') return 'name_time';
     return 'auto';
   }
   if (d === 'hidden' || d === 'none') return 'hidden';
-  if (d === 'time-only') return 'time_only';
-  if (d === 'icon-only') return 'icon_only';
-  if (s === 'icon_only') return 'icon_time';
-  if (s === 'name_only') return 'name_time';
+  if (d === 'time-only' || d === 'time_only') return 'time_only';
+  if (d === 'icon-only' || d === 'icon_only') {
+    return isCompact ? 'auto' : 'icon_only';
+  }
+  if (!isCompact && s === 'icon_only') return 'icon_time';
+  if (!isCompact && s === 'name_only') return 'name_time';
   return 'auto';
 }
 function syncUnifiedClipDetailsSelect() {
   try {
     const sel = document.getElementById('stClipDetailsSelect');
-    const mode = resolveUnifiedClipDetails();
-    if (sel && sel.value !== mode) sel.value = mode;
+    const qvSel = document.getElementById('qvClipDetails');
+    const curPreset = (typeof document !== 'undefined' && document.documentElement && document.documentElement.getAttribute('data-layout-preset')) || (typeof localStorage !== 'undefined' && localStorage.getItem('dualclip_layout_preset')) || 'standard';
+    const isCompact = (curPreset === 'compact');
+
+    // In compact mode, only Auto (Default), Time Only, and Hidden are enabled.
+    // App Icon Only, App Icon + Time, and App Name + Time are grayed out.
+    const disabledInCompact = ['icon_time', 'name_time', 'icon_only', 'icon-only'];
+
+    if (sel && sel.options) {
+      Array.from(sel.options).forEach(opt => {
+        opt.disabled = isCompact && disabledInCompact.includes(opt.value);
+      });
+      const mode = resolveUnifiedClipDetails();
+      if (sel.value !== mode) sel.value = mode;
+      if (typeof rebuildCustomSelect === 'function') rebuildCustomSelect(sel);
+    }
+
+    if (qvSel && qvSel.options) {
+      Array.from(qvSel.options).forEach(opt => {
+        opt.disabled = isCompact && disabledInCompact.includes(opt.value);
+      });
+      const curVal = (typeof localStorage !== 'undefined' && localStorage.getItem('dualclip_clip_details')) || 'auto';
+      if (qvSel.value !== curVal) qvSel.value = curVal;
+      if (typeof rebuildCustomSelect === 'function') rebuildCustomSelect(qvSel);
+    }
   } catch (e) {}
 }
 function changeUnifiedClipDetails(mode) {
+  const curPreset = (typeof document !== 'undefined' && document.documentElement && document.documentElement.getAttribute('data-layout-preset')) || (typeof localStorage !== 'undefined' && localStorage.getItem('dualclip_layout_preset')) || 'standard';
+  if (curPreset === 'compact' && ['icon_time', 'name_time', 'icon_only', 'icon-only'].includes(mode)) {
+    return;
+  }
   const map = {
     auto:      { details: 'auto', source: 'both' },
     default:   { details: 'auto', source: 'both' },

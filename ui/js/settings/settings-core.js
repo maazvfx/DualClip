@@ -519,6 +519,9 @@ function initCustomSelect(wrap) {
   items.forEach(item => {
     item.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (item.classList.contains('disabled') || item.getAttribute('aria-disabled') === 'true') {
+        return;
+      }
       const val = item.dataset.val;
       items.forEach(i => i.classList.remove('selected'));
       item.classList.add('selected');
@@ -575,6 +578,15 @@ function syncAllCustomSelects(root = document) {
     if (label && selectedOpt) label.textContent = selectedOpt.textContent.trim();
     wrap.querySelectorAll('.opt-item').forEach(item => {
       item.classList.toggle('selected', item.getAttribute('data-val') === String(sel.value));
+      const opt = sel.querySelector(`option[value="${item.getAttribute('data-val')}"]`);
+      if (opt) {
+        item.classList.toggle('disabled', !!opt.disabled);
+        if (opt.disabled) {
+          item.setAttribute('aria-disabled', 'true');
+        } else {
+          item.removeAttribute('aria-disabled');
+        }
+      }
     });
   });
 }
@@ -596,11 +608,13 @@ function rebuildCustomSelect(sel) {
 
   menu.innerHTML = '';
   Array.from(sel.options).forEach(opt => {
-    if (opt.disabled && sel.options.length > 1) return;
     const optDiv = document.createElement('div');
     optDiv.className = 'opt-item' + (opt.value === sel.value ? ' selected' : '') + (opt.disabled ? ' disabled' : '');
     optDiv.dataset.val = opt.value;
     optDiv.textContent = opt.textContent;
+    if (opt.disabled) {
+      optDiv.setAttribute('aria-disabled', 'true');
+    }
     menu.appendChild(optDiv);
   });
 
@@ -615,6 +629,9 @@ function rebuildCustomSelect(sel) {
   items.forEach(item => {
     item.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (item.classList.contains('disabled') || item.getAttribute('aria-disabled') === 'true') {
+        return;
+      }
       const val = item.dataset.val;
       items.forEach(i => i.classList.remove('selected'));
       item.classList.add('selected');
@@ -666,11 +683,13 @@ function enhanceAllCustomSelects(root = document) {
     menu.setAttribute('role', 'menu');
 
     Array.from(sel.options).forEach(opt => {
-      if (opt.disabled) return;
       const optDiv = document.createElement('div');
-      optDiv.className = 'opt-item' + (opt.selected ? ' selected' : '');
+      optDiv.className = 'opt-item' + (opt.selected ? ' selected' : '') + (opt.disabled ? ' disabled' : '');
       optDiv.dataset.val = opt.value;
       optDiv.textContent = opt.textContent;
+      if (opt.disabled) {
+        optDiv.setAttribute('aria-disabled', 'true');
+      }
       menu.appendChild(optDiv);
     });
 
@@ -720,6 +739,9 @@ function openSettingsView() {
   }
   if (typeof enhanceAllCustomSelects === 'function') {
     try { enhanceAllCustomSelects(); } catch (e) {}
+  }
+  if (typeof syncUnifiedClipDetailsSelect === 'function') {
+    try { syncUnifiedClipDetailsSelect(); } catch (e) {}
   }
 
   if (mainView) mainView.style.display = 'none';
