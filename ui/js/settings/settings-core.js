@@ -73,8 +73,12 @@ function syncSettingsUiFromStorage() {
     const markerSel = document.getElementById('stUsedMarkerSelect');
     if (markerSel) markerSel.value = savedMarker2;
 
-    const savedClipDetails = localStorage.getItem('dualclip_clip_details') || 'hidden';
-    document.documentElement.setAttribute('data-clip-details', savedClipDetails);
+    const savedClipDetails = localStorage.getItem('dualclip_clip_details') || 'auto';
+    const curPreset = localStorage.getItem('dualclip_layout_preset') || 'standard';
+    const effectiveDetails = (savedClipDetails === 'auto')
+      ? (curPreset === 'compact' ? 'hidden' : 'app-time')
+      : savedClipDetails;
+    document.documentElement.setAttribute('data-clip-details', effectiveDetails);
 
     const savedAppSource = localStorage.getItem('dualclip_app_source_display') || 'both';
     document.documentElement.setAttribute('data-app-source-display', savedAppSource);

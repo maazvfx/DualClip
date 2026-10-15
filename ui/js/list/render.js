@@ -331,6 +331,9 @@ try {
 
 function isClipDetailsHidden() {
   const details = document.documentElement.getAttribute('data-clip-details') || 'hidden';
+  if (details === 'auto') {
+    return isCompactLayoutActive();
+  }
   return details === 'hidden' || details === 'none';
 }
 

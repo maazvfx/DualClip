@@ -628,12 +628,13 @@
                 <div class="setting-caption">Choose which information appears on clip cards (source app, time, or none)</div>
               </div>
               <select class="st-select" id="stClipDetailsSelect" onchange="changeUnifiedClipDetails(this.value)">
-                <option value="hidden" selected>Hidden (Default)</option>
+                <option value="auto" selected>Auto (Default)</option>
                 <option value="default">App + Time</option>
                 <option value="icon_time">App Icon + Time</option>
                 <option value="name_time">App Name + Time</option>
                 <option value="icon_only">App Icon Only</option>
                 <option value="time_only">Time Only</option>
+                <option value="hidden">Hidden</option>
               </select>
             </div>
             <div class="notion-setting-row" id="row_label_style">

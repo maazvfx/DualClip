@@ -77,10 +77,11 @@ const QUICK_VIEW_MENU_CONFIG = [
         label: 'Clip Details',
         id: 'qvClipDetails',
         storageKey: 'dualclip_clip_details',
-        defaultValue: 'hidden',
+        defaultValue: 'auto',
         onChange: 'changeClipDetailsSetting',
         options: [
-          { value: 'app-time', label: 'Default' },
+          { value: 'auto', label: 'Auto (Default)' },
+          { value: 'app-time', label: 'App + Time' },
           { value: 'time-only', label: 'Time Only' },
           { value: 'icon-only', label: 'Icon Only' },
           { value: 'hidden', label: 'Hidden' }
@@ -109,7 +110,11 @@ function changeClipDetailsSetting(value, isProgrammatic = false) {
       localStorage.setItem('dualclip_standard_clip_details', value);
     }
   } catch (_) {}
-  document.documentElement.setAttribute('data-clip-details', value);
+  const curPreset = (document.documentElement.getAttribute('data-layout-preset') || localStorage.getItem('dualclip_layout_preset') || 'standard');
+  const effectiveDetails = (value === 'auto')
+    ? (curPreset === 'compact' ? 'hidden' : 'app-time')
+    : value;
+  document.documentElement.setAttribute('data-clip-details', effectiveDetails);
   // Persist through to settings.json so the saved file and the on-screen value can never
   // drift apart. It was previously written to the file by nothing and read by nothing,
   // which left the two sources of truth disagreeing after a factory reset.
@@ -200,17 +205,24 @@ function changeQuickViewLayoutPreset(value, hydrateOnly = false, animate = false
   // Standard mode restores the user's saved preference for standard mode.
   if (value === 'compact') {
     if (previousPreset !== 'compact') {
-      let currentDetails = 'hidden';
-      try { currentDetails = localStorage.getItem('dualclip_clip_details') || 'hidden'; } catch (_) {}
+      let currentDetails = 'auto';
+      try { currentDetails = localStorage.getItem('dualclip_clip_details') || 'auto'; } catch (_) {}
       try { localStorage.setItem('dualclip_standard_clip_details', currentDetails); } catch (_) {}
     }
-    try { if (typeof changeClipDetailsSetting === 'function') changeClipDetailsSetting('hidden', true); } catch (e4) {}
+    const current = localStorage.getItem('dualclip_clip_details') || 'auto';
+    if (current === 'auto') {
+      document.documentElement.setAttribute('data-clip-details', 'hidden');
+      const qvSel = document.getElementById('qvClipDetails');
+      if (qvSel && qvSel.value !== 'auto') qvSel.value = 'auto';
+    } else {
+      try { if (typeof changeClipDetailsSetting === 'function') changeClipDetailsSetting('hidden', true); } catch (e4) {}
+    }
   } else {
-    let savedStandardDetails = 'hidden';
+    let savedStandardDetails = 'auto';
     try {
       savedStandardDetails = localStorage.getItem('dualclip_standard_clip_details')
         || localStorage.getItem('dualclip_clip_details')
-        || 'hidden';
+        || 'auto';
     } catch (_) {}
     try { if (typeof changeClipDetailsSetting === 'function') changeClipDetailsSetting(savedStandardDetails, true); } catch (e4) {}
   }

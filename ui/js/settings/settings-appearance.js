@@ -1,4 +1,4 @@
-﻿function createBooleanAppearanceSetting(config) {
+function createBooleanAppearanceSetting(config) {
   const { storageKey, className, attrName, toggleId, notifyKey } = config;
 
   const getVal = () => localStorage.getItem(storageKey) === '1';
@@ -697,11 +697,12 @@ function resolveUnifiedClipDetails() {
   let d = '';
   let s = '';
   try {
-    d = document.documentElement.getAttribute('data-clip-details') || localStorage.getItem('dualclip_clip_details') || 'hidden';
+    d = localStorage.getItem('dualclip_clip_details') || document.documentElement.getAttribute('data-clip-details') || 'auto';
     s = document.documentElement.getAttribute('data-app-source-display') || localStorage.getItem('dualclip_app_source_display') || 'both';
   } catch (e) {
-    d = 'hidden'; s = 'both';
+    d = 'auto'; s = 'both';
   }
+  if (d === 'auto') return 'auto';
   if (d === 'hidden' || d === 'none') return 'hidden';
   if (d === 'time-only') return 'time_only';
   if (d === 'icon-only') return 'icon_only';
@@ -718,6 +719,7 @@ function syncUnifiedClipDetailsSelect() {
 }
 function changeUnifiedClipDetails(mode) {
   const map = {
+    auto:      { details: 'auto', source: null },
     default:   { details: 'app-time', source: 'both' },
     icon_time: { details: 'app-time', source: 'icon_only' },
     name_time: { details: 'app-time', source: 'name_only' },
@@ -725,7 +727,7 @@ function changeUnifiedClipDetails(mode) {
     time_only: { details: 'time-only', source: null },
     hidden:    { details: 'hidden', source: null }
   };
-  const m = map[mode] || map.default;
+  const m = map[mode] || map.auto;
   if (typeof changeClipDetailsSetting === 'function') {
     try { changeClipDetailsSetting(m.details, false); } catch (e) {}
   }

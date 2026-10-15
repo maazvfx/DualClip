@@ -53,7 +53,7 @@ public class AppSettingsData
     public bool FuzzySearch { get; set; } = false; // V1.0 CONTRACT: default false
     public string Theme { get; set; } = "system";
     public string LineDisplay { get; set; } = "auto";
-    public string ClipDetails { get; set; } = "hidden";
+    public string ClipDetails { get; set; } = "auto";
     public string ThumbSize { get; set; } = "sm";
     public string ImageDisplayMode { get; set; } = "thumbnail_only";
     public string VisualStyle { get; set; } = "linear";
