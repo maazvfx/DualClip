@@ -31,47 +31,6 @@ let didPan = false;
 let isPreviewWrapped = true;
 let _compactPreviewExpanded = false;
 let _compactPreExpandSize = null;
-let _pendingResizeFn = null;
-
-function getPreviewFixMode() {
-  try {
-    return localStorage.getItem('dc_preview_fix_mode') || 'default';
-  } catch (_) {
-    return 'default';
-  }
-}
-
-function selectPreviewFix(mode) {
-  try {
-    localStorage.setItem('dc_preview_fix_mode', mode);
-  } catch (_) {}
-  updatePreviewFixButtons();
-  if (window.dcDebugLog) {
-    window.dcDebugLog('Frontend:Preview', 'Active test fix changed to: ' + mode);
-  }
-}
-
-function updatePreviewFixButtons() {
-  const current = getPreviewFixMode();
-  document.querySelectorAll('.prev-fix-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.getAttribute('data-fix') === current);
-  });
-  const statusEl = document.getElementById('prevFixStatus');
-  if (statusEl) {
-    const labels = {
-      default: 'Default (Original)',
-      fix1: 'Fix 1: Pre-Render (Press Esc then Space)',
-      fix2: 'Fix 2: Guard (Press Esc then Space)',
-      fix3: 'Fix 3: Compact Inside (No OS resize)',
-      fix4: 'Fix 4: Layout Lock'
-    };
-    statusEl.textContent = labels[current] || current;
-  }
-}
-
-window.getPreviewFixMode = getPreviewFixMode;
-window.selectPreviewFix = selectPreviewFix;
-window.updatePreviewFixButtons = updatePreviewFixButtons;
 
 function isDockTarget(target) {
   if (!target) return false;
@@ -131,58 +90,22 @@ function openFullPreviewModal(clip) {
   try {
     const isCompact = document.documentElement.getAttribute('data-layout-preset') === 'compact' ||
                       (document.body && document.body.classList.contains('density-dense'));
-    const fixMode = getPreviewFixMode();
-    const modalEl = document.getElementById('previewModal');
-
     if (isCompact && !_compactPreviewExpanded) {
-      if (fixMode === 'fix3') {
-        if (modalEl) modalEl.classList.add('preview-compact-fit');
-        if (window.dcDebugLog) {
-          window.dcDebugLog('Frontend:Preview', 'Fix 3 active: OS resize skipped, showing modal inside compact bounds');
-        }
-      } else {
-        if (modalEl) modalEl.classList.remove('preview-compact-fit');
-        const zoom = typeof currentZoomLevel !== 'undefined' ? currentZoomLevel : 1.0;
-        _compactPreExpandSize = {
-          w: window.innerWidth,
-          h: window.innerHeight
-        };
-        _compactPreviewExpanded = true;
-        const targetW = Math.max(Math.round(660 * zoom), window.innerWidth);
-        const targetH = Math.max(Math.round(520 * zoom), window.innerHeight);
-
-        if (fixMode === 'fix4' && modalEl) {
-          const card = modalEl.querySelector('.preview-card');
-          if (card) {
-            card.style.width = Math.max(320, targetW - 40) + 'px';
-            card.style.height = Math.max(220, targetH - 60) + 'px';
-          }
-        }
-
-        const dispatchResize = () => {
-          if (window.dcDebugLog) {
-            window.dcDebugLog('Frontend:Preview', 'Compact preview expansion dispatched (mode=' + fixMode + '): from ' + window.innerWidth + 'x' + window.innerHeight + ' to ' + targetW + 'x' + targetH + ' (animate=true, persist=false)');
-          }
-          if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.set_window_size === 'function') {
-            window.pywebview.api.set_window_size(targetW, targetH, true, false);
-          } else if (typeof callHost === 'function') {
-            callHost('set_window_size', [targetW, targetH, true, false]);
-          }
-        };
-
-        if (fixMode === 'fix1') {
-          _pendingResizeFn = dispatchResize;
-        } else if (fixMode === 'fix2') {
-          if (modalEl) modalEl.classList.add('prev-visual-guard');
-          dispatchResize();
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              if (modalEl) modalEl.classList.remove('prev-visual-guard');
-            });
-          });
-        } else {
-          dispatchResize();
-        }
+      const zoom = typeof currentZoomLevel !== 'undefined' ? currentZoomLevel : 1.0;
+      _compactPreExpandSize = {
+        w: window.innerWidth,
+        h: window.innerHeight
+      };
+      _compactPreviewExpanded = true;
+      const targetW = Math.max(Math.round(660 * zoom), window.innerWidth);
+      const targetH = Math.max(Math.round(520 * zoom), window.innerHeight);
+      if (window.dcDebugLog) {
+        window.dcDebugLog('Frontend:Preview', 'Compact preview expansion dispatched: from ' + window.innerWidth + 'x' + window.innerHeight + ' to ' + targetW + 'x' + targetH + ' (animate=true, persist=false)');
+      }
+      if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.set_window_size === 'function') {
+        window.pywebview.api.set_window_size(targetW, targetH, true, false);
+      } else if (typeof callHost === 'function') {
+        callHost('set_window_size', [targetW, targetH, true, false]);
       }
     }
   } catch (_) {}
@@ -388,15 +311,6 @@ function openFullPreviewModal(clip) {
   if (modal) {
     modal.style.display = 'flex';
     if (window.dcDebugLog) window.dcDebugLog('Frontend:Preview', 'previewModal display set to flex');
-    updatePreviewFixButtons();
-  }
-  if (_pendingResizeFn) {
-    const fn = _pendingResizeFn;
-    _pendingResizeFn = null;
-    if (modal) void modal.offsetHeight;
-    requestAnimationFrame(() => {
-      fn();
-    });
   }
   try { applyPreviewFontForClip(clip); } catch (_) {}
   // Direct dialog-pin signal (the modal observer also sends it; belt and
@@ -824,16 +738,7 @@ function closePreviewModal(event, force = false) {
   const zoomGroup = document.getElementById('prevZoomGroup');
   if (zoomGroup) zoomGroup.style.display = 'none';
   const modal = document.getElementById('previewModal');
-  if (modal) {
-    modal.style.display = 'none';
-    modal.classList.remove('preview-compact-fit');
-    modal.classList.remove('prev-visual-guard');
-    const card = modal.querySelector('.preview-card');
-    if (card) {
-      card.style.width = '';
-      card.style.height = '';
-    }
-  }
+  if (modal) modal.style.display = 'none';
   currentPreviewClip = null;
   _previewGen++;
 

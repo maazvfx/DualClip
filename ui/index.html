@@ -1527,15 +1527,6 @@
           <button class="tb-btn close" onclick="closePreviewModal(event, true)" data-action="close-preview" title="Close (Esc)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
         </div>
       </div>
-      <div id="prevFixBar" class="prev-fix-bar">
-        <span class="prev-fix-label">FIX:</span>
-        <button type="button" class="btn-sm prev-fix-btn active" data-fix="default" onclick="selectPreviewFix('default')" title="Original immediate resize">Default</button>
-        <button type="button" class="btn-sm prev-fix-btn" data-fix="fix1" onclick="selectPreviewFix('fix1')" title="Fix 1: Pre-Render DOM before OS window resizes">Fix 1: Pre-Render</button>
-        <button type="button" class="btn-sm prev-fix-btn" data-fix="fix2" onclick="selectPreviewFix('fix2')" title="Fix 2: Visual Guard hides intermediate frame">Fix 2: Guard</button>
-        <button type="button" class="btn-sm prev-fix-btn" data-fix="fix3" onclick="selectPreviewFix('fix3')" title="Fix 3: Show preview inside compact window (No OS resize)">Fix 3: Compact</button>
-        <button type="button" class="btn-sm prev-fix-btn" data-fix="fix4" onclick="selectPreviewFix('fix4')" title="Fix 4: Fixed pixel size layout lock">Fix 4: Lock</button>
-        <span id="prevFixStatus" class="prev-fix-hint">Default (Original)</span>
-      </div>
       <textarea id="prevContent" class="preview-body" style="width: 100%; border: none; outline: none; resize: none; margin: 0; box-sizing: border-box;"></textarea>
       <div id="prevImageContainer" class="preview-body" style="display: none;"></div>
       <div class="settings-footer" id="prevFooter" style="justify-content: space-between; align-items: center;">
