@@ -70,6 +70,15 @@ const getHideWindowBorderSetting = _borderSetting.getVal;
 const applyHideWindowBorderSetting = _borderSetting.applyVal;
 const toggleHideWindowBorderSetting = _borderSetting.toggleVal;
 
+const _animateModeSwitchSetting = createBooleanAppearanceSetting({
+  storageKey: 'dualclip_animate_mode_switch',
+  toggleId: 'stAnimateModeSwitchToggle',
+  notifyKey: 'row_animate_mode_switch'
+});
+const getAnimateModeSwitchSetting = _animateModeSwitchSetting.getVal;
+const applyAnimateModeSwitchSetting = _animateModeSwitchSetting.applyVal;
+const toggleAnimateModeSwitchSetting = _animateModeSwitchSetting.toggleVal;
+
 window.applyOutlineSelectionSetting = applyOutlineSelectionSetting;
 window.toggleOutlineSelectionSetting = toggleOutlineSelectionSetting;
 window.getOutlineSelectionSetting = getOutlineSelectionSetting;
@@ -82,6 +91,9 @@ window.getHoverHighlightSetting = getHoverHighlightSetting;
 window.applyHideWindowBorderSetting = applyHideWindowBorderSetting;
 window.toggleHideWindowBorderSetting = toggleHideWindowBorderSetting;
 window.getHideWindowBorderSetting = getHideWindowBorderSetting;
+window.applyAnimateModeSwitchSetting = applyAnimateModeSwitchSetting;
+window.toggleAnimateModeSwitchSetting = toggleAnimateModeSwitchSetting;
+window.getAnimateModeSwitchSetting = getAnimateModeSwitchSetting;
 
 // Legacy backward-compatibility shims
 window.applySelectionHighlightMode = function(m) {

@@ -191,6 +191,10 @@ function syncSettingsUiFromStorage() {
       }).catch(() => {});
     }
 
+    const animateModeSwitch = localStorage.getItem('dualclip_animate_mode_switch') === '1';
+    const amsTgl = document.getElementById('stAnimateModeSwitchToggle');
+    if (amsTgl) amsTgl.classList.toggle('on', animateModeSwitch);
+
     const rememberCollection = localStorage.getItem('dualclip_remember_collection') !== '0';
     const rcTgl = document.getElementById('stRememberCollectionToggle');
     if (rcTgl) rcTgl.classList.toggle('on', rememberCollection);

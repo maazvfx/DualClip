@@ -523,6 +523,7 @@ const SETTINGS_SEARCH_INDEX = [
   { id: 'row_window_position', tab: 'window', label: 'Hotkey Window Position', desc: 'Where the DualClip window appears when activated by global shortcut', keywords: 'window position placement open at last center near cursor smart mouse coordinates monitor shortcut' },
   { id: 'row_tray_position', tab: 'window', label: 'Tray Window Position', desc: 'Where the DualClip window appears when clicking the system tray icon', keywords: 'tray position icon click placement open at corner center near cursor monitor' },
   { id: 'row_reset_window_size', tab: 'window', label: 'Reset Window Size', desc: 'Restore default dimensions for the current mode (Compact or Standard)', keywords: 'reset window size default dimensions compact standard geometry' },
+  { id: 'row_animate_mode_switch', tab: 'window', label: 'Animate View Mode Switch', desc: 'Smoothly morph window bounds when switching between Standard and Compact modes', keywords: 'animate view mode switch grow shrink morph animation transition compact standard' },
 
   // 4. List Organization (now under Appearance)
   { id: 'row_grouping_mode', tab: 'theme', label: 'Group clips by', desc: 'Organize history with recency landmarks or display a clean continuous stream', keywords: 'grouping group clips by section time none continuous recency landmarks' },

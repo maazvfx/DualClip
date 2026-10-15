@@ -2291,9 +2291,10 @@ function updateViewModeButton(mode) {
 }
 
 function applyViewMode(mode) {
+  const animate = localStorage.getItem('dualclip_animate_mode_switch') === '1';
   if (mode === 'compact') {
     if (typeof changeQuickViewLayoutPreset === 'function') {
-      changeQuickViewLayoutPreset('compact', false, false);
+      changeQuickViewLayoutPreset('compact', false, animate);
     }
     // Auto-close left sidebar view in compact mode (window is only 360px wide)
     if (typeof getSidebarLayoutSetting === 'function' && getSidebarLayoutSetting() === 'sidebar') {
@@ -2304,7 +2305,7 @@ function applyViewMode(mode) {
     toggleLivePreview(false);
   } else {
     if (typeof changeQuickViewLayoutPreset === 'function') {
-      changeQuickViewLayoutPreset('standard', false, false);
+      changeQuickViewLayoutPreset('standard', false, animate);
     }
     toggleLivePreview(false);
   }

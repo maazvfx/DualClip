@@ -132,8 +132,11 @@ function changeClipDetailsSetting(value, isProgrammatic = false) {
   if (typeof renderList === 'function') { try { renderList(); } catch (e) {} }
   if (typeof notifySettingSaved === 'function') notifySettingSaved('qvClipDetails');
 }
-function changeQuickViewLayoutPreset(value, hydrateOnly = false, animate = false) {
+function changeQuickViewLayoutPreset(value, hydrateOnly = false, animate) {
   if (!value) return;
+  if (animate === undefined) {
+    try { animate = localStorage.getItem('dualclip_animate_mode_switch') === '1'; } catch (_) { animate = false; }
+  }
   // Legacy Large value migrates to Standard (Large mode removed).
   let previousPreset = 'standard';
   try { previousPreset = localStorage.getItem('dualclip_layout_preset') || 'standard'; } catch (_) {}

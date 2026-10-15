@@ -1470,9 +1470,7 @@ public partial class MainForm
                         var targetSize = new Size(Math.Clamp(w, MIN_WINDOW_WIDTH, maxW), Math.Clamp(h, MIN_WINDOW_HEIGHT, maxH));
                         _transientSize = !persist;
                         _transientSizeValue = persist ? Size.Empty : targetSize;
-                        // Temporarily disabled bounds morph animation for testing
-                        const bool enableMorphAnimation = false;
-                        if (animate && enableMorphAnimation)
+                        if (animate)
                         {
                             StartBoundsMorph(targetSize, centerInPlace: true, persistOnComplete: persist);
                             SendRpcResponse(rpcId, new { ok = true, width = targetSize.Width, height = targetSize.Height });

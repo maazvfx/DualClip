@@ -60,6 +60,7 @@ public class AppSettingsData
     public string GroupingMode { get; set; } = "time";
     // TASK-002: ViewMode removed — layout preset authority is localStorage 'dualclip_layout_preset'.
     public bool LivePreviewEnabled { get; set; } = false;
+    public bool AnimateModeSwitch { get; set; } = false;
 
     // Smart Features
     public bool SmartShortcuts { get; set; } = true;
