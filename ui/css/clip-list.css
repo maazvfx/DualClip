@@ -1207,7 +1207,17 @@
     }
 
     /* Layout Preset — quickViewMenu wiring */
-    .layout-compact .clip-row { padding: 5px 10px !important; }
+    .layout-compact .clip-row,
+    html[data-layout-preset="compact"] .clip-row {
+      padding: 3px 10px !important;
+    }
+    .layout-compact .clip-row:not(:has(.direct-thumbnail)):not(:has(.direct-thumbnail-placeholder)),
+    html[data-layout-preset="compact"] .clip-row:not(:has(.direct-thumbnail)):not(:has(.direct-thumbnail-placeholder)) {
+      min-height: 31px !important;
+      height: 31px !important;
+      max-height: 31px !important;
+      padding: 3px 10px !important;
+    }
     .layout-compact #listContainer { gap: 1px; }
     #listContainer.layout-standard { padding-bottom: 14px; }
 

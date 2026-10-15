@@ -470,6 +470,9 @@ function getRowHeight(clip) {
       if (size === 'md') return Math.round(64 * scale);
       return Math.round(40 * scale);
     }
+    if (isCompactLayoutActive()) {
+      return Math.round(31 * scale);
+    }
     const mode = document.documentElement.getAttribute('data-line-display') || '1';
     let baseH = 31;
     if (mode === '1') baseH = isHidden ? 31 : 47;
