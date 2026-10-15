@@ -104,9 +104,16 @@ const QUICK_VIEW_MENU_CONFIG = [
 function changeClipDetailsSetting(value, isProgrammatic = false) {
   try { localStorage.setItem('dualclip_clip_details', value); } catch (e) {}
   try {
-    const curPreset = localStorage.getItem('dualclip_layout_preset') || 'standard';
-    if (curPreset !== 'compact' && !isProgrammatic) {
-      localStorage.setItem('dualclip_standard_clip_details', value);
+    const curPreset = (document.documentElement.getAttribute('data-layout-preset') || localStorage.getItem('dualclip_layout_preset') || 'standard');
+    if (!isProgrammatic) {
+      if (value === 'auto') {
+        localStorage.setItem('dualclip_standard_clip_details', 'auto');
+        localStorage.setItem('dualclip_compact_clip_details', 'auto');
+      } else if (curPreset === 'compact') {
+        localStorage.setItem('dualclip_compact_clip_details', value);
+      } else {
+        localStorage.setItem('dualclip_standard_clip_details', value);
+      }
     }
   } catch (_) {}
   const curPreset = (document.documentElement.getAttribute('data-layout-preset') || localStorage.getItem('dualclip_layout_preset') || 'standard');
@@ -204,23 +211,15 @@ function changeQuickViewLayoutPreset(value, hydrateOnly = false, animate = false
     if (typeof applyQuickViewWindowSize === 'function') applyQuickViewWindowSize(b.windowSize, animate === true);
     else if (typeof window.applyWindowSizePreset === 'function') window.applyWindowSizePreset(b.windowSize, animate === true);
   } catch (e2) {}
-  // Clip details setting is decoupled from mode switching: preserve user's preferred detail setting.
-  // Clip details: Compact is ALWAYS 'hidden' to ensure zero layout shift.
-  // Standard mode restores the user's saved preference for standard mode.
+  // Clip details setting: preserved per mode (Compact vs Standard), with 'auto' affecting both.
   if (value === 'compact') {
-    if (previousPreset !== 'compact') {
-      let currentDetails = 'auto';
-      try { currentDetails = localStorage.getItem('dualclip_clip_details') || 'auto'; } catch (_) {}
-      try { localStorage.setItem('dualclip_standard_clip_details', currentDetails); } catch (_) {}
-    }
-    const current = localStorage.getItem('dualclip_clip_details') || 'auto';
-    if (current === 'auto') {
-      document.documentElement.setAttribute('data-clip-details', 'hidden');
-      const qvSel = document.getElementById('qvClipDetails');
-      if (qvSel && qvSel.value !== 'auto') qvSel.value = 'auto';
-    } else {
-      try { if (typeof changeClipDetailsSetting === 'function') changeClipDetailsSetting('hidden', true); } catch (e4) {}
-    }
+    let savedCompactDetails = 'auto';
+    try {
+      savedCompactDetails = localStorage.getItem('dualclip_compact_clip_details')
+        || (localStorage.getItem('dualclip_clip_details') === 'auto' ? 'auto' : null)
+        || 'auto';
+    } catch (_) {}
+    try { if (typeof changeClipDetailsSetting === 'function') changeClipDetailsSetting(savedCompactDetails, true); } catch (e4) {}
   } else {
     let savedStandardDetails = 'auto';
     try {
