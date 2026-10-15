@@ -239,6 +239,19 @@
         <div id="recentSearchesDropdown" class="recent-searches-dropdown" style="display: none;"></div>
       </div>
 
+      <!-- Mode Switch Transition Test Presets Toolbar -->
+      <div id="modeSwitchTestBar" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary, #18181b); padding: 4px 10px; border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.08)); font-size: 11px; z-index: 1000; -webkit-app-region: no-drag; app-region: no-drag;">
+        <span style="font-weight: 600; color: var(--accent, #6366f1); display: flex; align-items: center; gap: 4px;">
+          🧪 Mode Switch Test:
+        </span>
+        <div style="display: flex; gap: 4px; align-items: center;">
+          <button id="btnTestPresetA" class="tb-btn" style="padding: 2px 8px; font-size: 11px; height: 22px; border-radius: 4px; background: var(--bg-hover, rgba(255,255,255,0.06));" onclick="setModeSwitchTestPreset('A')" title="Baseline (Current default behavior)">A: Default</button>
+          <button id="btnTestPresetB" class="tb-btn" style="padding: 2px 8px; font-size: 11px; height: 22px; border-radius: 4px; background: var(--bg-hover, rgba(255,255,255,0.06));" onclick="setModeSwitchTestPreset('B')" title="Quick Fade: Opacity fade on list during resize to mask layout snap">B: Fade Out/In</button>
+          <button id="btnTestPresetC" class="tb-btn" style="padding: 2px 8px; font-size: 11px; height: 22px; border-radius: 4px; background: var(--bg-hover, rgba(255,255,255,0.06));" onclick="setModeSwitchTestPreset('C')" title="Deferred Paint: Lock redraw until window resize completes, then single clean render">C: Settle Then Draw</button>
+          <button id="btnTestPresetD" class="tb-btn" style="padding: 2px 8px; font-size: 11px; height: 22px; border-radius: 4px; background: var(--bg-hover, rgba(255,255,255,0.06));" onclick="setModeSwitchTestPreset('D')" title="Instant Swap: Force non-animated immediate snap without morph delay">D: Instant Snap</button>
+        </div>
+      </div>
+
       <!-- Active Filter Pills Bar -->
       <div id="activePillsBar" class="active-pills-bar">
         <span id="pillList" style="display: flex; gap: 6px; align-items: center;"></span>

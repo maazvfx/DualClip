@@ -187,13 +187,34 @@ function changeQuickViewLayoutPreset(value, hydrateOnly = false, animate = false
   try { savedLineSetting = localStorage.getItem('dualclip_line_display') || 'auto'; } catch (_) {}
   try { if (typeof switchDensityPreview === 'function') switchDensityPreview(b.density); } catch (e) {}
   try { if (typeof changeLineDisplay === 'function') changeLineDisplay(savedLineSetting, true); } catch (e3) {}
+  let activeTestPreset = 'A';
+  try { activeTestPreset = localStorage.getItem('dualclip_mode_switch_test_preset') || 'A'; } catch (_) {}
+
+  if (activeTestPreset === 'D') {
+    animate = false;
+  }
+
   if (animate === true) {
     window._isModeMorphing = true;
     clearTimeout(window._modeMorphTimer);
+
+    if (activeTestPreset === 'B') {
+      // Preset B: Fade list during transition to mask redraw/jump
+      const lc = document.getElementById('listContainer');
+      if (lc) lc.style.opacity = '0.35';
+    }
+
+    const timerMs = activeTestPreset === 'C' ? 120 : 220;
     window._modeMorphTimer = setTimeout(function() {
       window._isModeMorphing = false;
+      const lc = document.getElementById('listContainer');
+      if (lc) lc.style.opacity = '';
+      if (activeTestPreset === 'C') {
+        try { if (typeof invalidateCachedHeight === 'function') invalidateCachedHeight(); } catch (_) {}
+        try { if (typeof invalidateUsableWidthCache === 'function') invalidateUsableWidthCache(); } catch (_) {}
+      }
       try { if (typeof renderList === 'function') renderList(); else if (typeof renderVirtualWindow === 'function') renderVirtualWindow(); } catch (e) {}
-    }, 220);
+    }, timerMs);
   }
   try {
     if (typeof applyQuickViewWindowSize === 'function') applyQuickViewWindowSize(b.windowSize, animate === true);
@@ -463,6 +484,39 @@ window.changeClipDetailsSetting = changeClipDetailsSetting;
 window.changeQuickViewLayoutPreset = changeQuickViewLayoutPreset;
 window.changeQuickViewTextPower = changeQuickViewTextPower;
 window.changeQuickViewZoom = changeQuickViewZoom;
-window.changeSelectionStyleSetting = changeSelectionStyleSetting;
-window.resetQuickViewSettings = resetQuickViewSettings;
 window.applyQuickViewWindowSize = applyQuickViewWindowSize;
+
+function setModeSwitchTestPreset(preset) {
+  try {
+    localStorage.setItem('dualclip_mode_switch_test_preset', preset);
+  } catch (_) {}
+  updateModeSwitchTestPresetButtons(preset);
+}
+
+function updateModeSwitchTestPresetButtons(preset) {
+  const current = preset || (localStorage.getItem('dualclip_mode_switch_test_preset') || 'A');
+  ['A', 'B', 'C', 'D'].forEach(p => {
+    const btn = document.getElementById('btnTestPreset' + p);
+    if (btn) {
+      if (p === current) {
+        btn.style.background = 'var(--accent, #6366f1)';
+        btn.style.color = '#fff';
+        btn.style.fontWeight = '700';
+      } else {
+        btn.style.background = 'var(--bg-hover, rgba(255,255,255,0.06))';
+        btn.style.color = '';
+        btn.style.fontWeight = 'normal';
+      }
+    }
+  });
+}
+window.setModeSwitchTestPreset = setModeSwitchTestPreset;
+window.updateModeSwitchTestPresetButtons = updateModeSwitchTestPresetButtons;
+
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => updateModeSwitchTestPresetButtons());
+  } else {
+    setTimeout(updateModeSwitchTestPresetButtons, 50);
+  }
+}
