@@ -81,7 +81,6 @@ const QUICK_VIEW_MENU_CONFIG = [
         onChange: 'changeClipDetailsSetting',
         options: [
           { value: 'auto', label: 'Auto (Default)' },
-          { value: 'app-time', label: 'App + Time' },
           { value: 'time-only', label: 'Time Only' },
           { value: 'icon-only', label: 'Icon Only' },
           { value: 'hidden', label: 'Hidden' }

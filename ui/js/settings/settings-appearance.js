@@ -702,13 +702,17 @@ function resolveUnifiedClipDetails() {
   } catch (e) {
     d = 'auto'; s = 'both';
   }
-  if (d === 'auto') return 'auto';
+  if (d === 'auto' || d === 'app-time') {
+    if (s === 'icon_only') return 'icon_time';
+    if (s === 'name_only') return 'name_time';
+    return 'auto';
+  }
   if (d === 'hidden' || d === 'none') return 'hidden';
   if (d === 'time-only') return 'time_only';
   if (d === 'icon-only') return 'icon_only';
   if (s === 'icon_only') return 'icon_time';
   if (s === 'name_only') return 'name_time';
-  return 'default';
+  return 'auto';
 }
 function syncUnifiedClipDetailsSelect() {
   try {
@@ -719,8 +723,8 @@ function syncUnifiedClipDetailsSelect() {
 }
 function changeUnifiedClipDetails(mode) {
   const map = {
-    auto:      { details: 'auto', source: null },
-    default:   { details: 'app-time', source: 'both' },
+    auto:      { details: 'auto', source: 'both' },
+    default:   { details: 'auto', source: 'both' },
     icon_time: { details: 'app-time', source: 'icon_only' },
     name_time: { details: 'app-time', source: 'name_only' },
     icon_only: { details: 'icon-only', source: 'icon_only' },

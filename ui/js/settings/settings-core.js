@@ -1313,8 +1313,9 @@ function restoreCurrentTabDefaults() {
     if (typeof applySoftenTintSetting === 'function') applySoftenTintSetting(false, false);
     if (typeof applyHoverHighlightSetting === 'function') applyHoverHighlightSetting(false, false);
     if (typeof applyHideWindowBorderSetting === 'function') applyHideWindowBorderSetting(false, false);
+    if (typeof changeUnifiedClipDetails === 'function') changeUnifiedClipDetails('auto');
 
-    ['row_theme_mode', 'row_zoom', 'row_visual_style', 'row_zebra', 'row_label_style', 'row_line_display', 'row_thumb_size'].forEach(notifySettingSaved);
+    ['row_theme_mode', 'row_zoom', 'row_visual_style', 'row_zebra', 'row_label_style', 'row_line_display', 'row_thumb_size', 'row_clip_details'].forEach(notifySettingSaved);
   } else if (tab === 'window') {
     // Reset hotkey to Ctrl+Shift+V, Double click: paste, Open at: near, Window size: default, Remember size: on
     resetDefaultHotkey();
