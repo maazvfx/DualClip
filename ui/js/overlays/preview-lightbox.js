@@ -160,14 +160,46 @@ function openFullPreviewModal(clip) {
       }
     };
 
+    const revealImageWhenSettled = () => {
+      const c = document.getElementById('prevImageContainer');
+      const startMs = Date.now();
+      let revealed = false;
+
+      const doReveal = () => {
+        if (revealed) return;
+        revealed = true;
+        applyImageZoom();
+        try {
+          img.style.transition = 'opacity 0.08s ease-out';
+          img.style.opacity = '1';
+        } catch {}
+        if (window.dcDebugLog) {
+          window.dcDebugLog('Frontend:Preview', 'Image revealed at settled container: ' + (c ? c.clientWidth + 'x' + c.clientHeight : 'unknown') + ' in ' + (Date.now() - startMs) + 'ms');
+        }
+      };
+
+      const checkSettled = () => {
+        if (!img || img !== document.getElementById('previewLightboxImg')) return;
+        const isCompactExpanding = _compactPreviewExpanded;
+        const isSettled = !isCompactExpanding || (c && c.clientWidth > 380);
+
+        if (isSettled || Date.now() - startMs > 150) {
+          doReveal();
+        } else {
+          requestAnimationFrame(checkSettled);
+        }
+      };
+
+      requestAnimationFrame(checkSettled);
+    };
+
     img.onload = () => {
       naturalWidth = img.naturalWidth || 0;
       naturalHeight = img.naturalHeight || 0;
       if (window.dcDebugLog) {
         window.dcDebugLog('Frontend:Preview', 'Image onload completed: natural=' + naturalWidth + 'x' + naturalHeight);
       }
-      applyImageZoom();
-      try { img.style.opacity = '1'; } catch {}
+      revealImageWhenSettled();
     };
     img.alt = clip.title || 'Image preview';
     try { img.style.opacity = '0'; } catch {}
@@ -178,7 +210,7 @@ function openFullPreviewModal(clip) {
       if (window.dcDebugLog) {
         window.dcDebugLog('Frontend:Preview', 'Image was already cached/complete: natural=' + naturalWidth + 'x' + naturalHeight);
       }
-      applyImageZoom();
+      revealImageWhenSettled();
     }
 
     try {
