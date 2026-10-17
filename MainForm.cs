@@ -1270,6 +1270,7 @@ public partial class MainForm : Form
     {
         var hideSw = Stopwatch.StartNew();
         StopModifierReleaseTracker();
+        _lastCycleTime = DateTime.MinValue;
         // Explicit hide always drops the dialog pin (onWindowHide dismisses
         // the dialogs themselves); the next blur starts unpinned.
         _modalOpen = false;

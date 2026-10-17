@@ -958,6 +958,14 @@ window.refreshClips = function(retryCount) {
 window.onWindowHide = function() {
   try { _windowVisible = false; _lastHiddenAt = Date.now(); } catch {}
   try {
+    if (typeof window.resetCycleState === 'function') {
+      window.resetCycleState();
+    } else {
+      window._smartHoldActive = false;
+      if (typeof winCycleCount !== 'undefined') winCycleCount = 0;
+    }
+  } catch {}
+  try {
     document.body.classList.add('suppress-hover');
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     document.querySelectorAll('.tb-btn, button').forEach(b => {

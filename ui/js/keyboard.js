@@ -5,8 +5,8 @@
 const DEV_HOT_RELOAD = false;
 
 function hideWindow(force = false) {
-  window._smartHoldActive = false;
-  winCycleCount = 0;
+  if (typeof resetCycleState === 'function') resetCycleState();
+  else { window._smartHoldActive = false; winCycleCount = 0; }
   if (typeof currentSettingsTab !== 'undefined') {
     currentSettingsTab = 'behavior';
   }
@@ -1075,6 +1075,13 @@ document.addEventListener('keydown', (e) => {
 // --- Smart Shortcuts: Hold-to-Navigate & Auto-Paste ---
 let winCycleCount = 0;
 
+function resetCycleState() {
+  window._smartHoldActive = false;
+  winCycleCount = 0;
+}
+window.resetCycleState = resetCycleState;
+window.addEventListener('dualclip:window-hide', resetCycleState);
+
 window.onCycleNext = function() {
   if (typeof isWindowHidden === 'function' && isWindowHidden()) return;
   window._smartHoldActive = true;
@@ -1088,6 +1095,7 @@ window.onWinReleased = function() {
   window._smartHoldActive = false;
   const didCycle = winCycleCount > 0;
   winCycleCount = 0;
+  if (typeof isWindowHidden === 'function' && isWindowHidden()) return;
   if (didCycle) {
     if (typeof pasteCurrentSelection === 'function') {
       pasteCurrentSelection();
@@ -1132,6 +1140,7 @@ window.openPreviewForSelection = openPreviewForSelection;
 
 // Close open transient dropdowns or menus when clicking elsewhere inside the window
 document.addEventListener('pointerdown', (e) => {
+  if (typeof resetCycleState === 'function') resetCycleState();
   if (e.button !== 0) return;
 
   const target = e.target;
@@ -1381,7 +1390,11 @@ try {
     window.chrome.webview.addEventListener('message', (e) => {
       try {
         const msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-        if (msg && (msg.event === 'onWindowShow' || msg.event === 'onCycleNext')) {
+        if (msg && msg.event === 'onWindowShow') {
+          if (typeof resetCycleState === 'function') resetCycleState();
+          window._smartHoldActive = true;
+          forceWindowFocus();
+        } else if (msg && msg.event === 'onCycleNext') {
           window._smartHoldActive = true;
           forceWindowFocus();
         }
@@ -1392,7 +1405,11 @@ try {
     window.addEventListener('message', (e) => {
       try {
         const msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-        if (msg && (msg.event === 'onWindowShow' || msg.event === 'onCycleNext')) {
+        if (msg && msg.event === 'onWindowShow') {
+          if (typeof resetCycleState === 'function') resetCycleState();
+          window._smartHoldActive = true;
+          forceWindowFocus();
+        } else if (msg && msg.event === 'onCycleNext') {
           window._smartHoldActive = true;
           forceWindowFocus();
         }
