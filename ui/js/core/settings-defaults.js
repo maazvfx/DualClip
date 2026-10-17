@@ -77,7 +77,7 @@ const SETTING_DEFAULTS = Object.freeze({
   dualclip_incognito: { def: false, type: 'bool' },
 
   // General & System Integration
-  dualclip_autostart: { def: false, type: 'bool' },
+  dualclip_autostart: { def: true, type: 'bool' },
   dualclip_start_hidden: { def: false, type: 'bool' },
   dualclip_show_taskbar: { def: false, type: 'bool' },
   dualclip_restore_clipboard: { def: false, type: 'bool' },

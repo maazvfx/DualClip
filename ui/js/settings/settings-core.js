@@ -207,7 +207,9 @@ function syncSettingsUiFromStorage() {
     const taskbarTgl = document.getElementById('stShowTaskbarToggle');
     if (taskbarTgl) taskbarTgl.classList.toggle('on', showTaskbar);
 
-    const autostart = localStorage.getItem('dualclip_autostart') === '1';
+    const autostart = (typeof getSetting === 'function')
+      ? getSetting('dualclip_autostart') === true
+      : localStorage.getItem('dualclip_autostart') !== '0';
     const autostartTgl = document.getElementById('stAutostartToggle');
     if (autostartTgl) autostartTgl.classList.toggle('on', autostart);
 
@@ -1315,9 +1317,9 @@ function restoreCurrentTabDefaults() {
     if (captureImagesTgl && !captureImagesTgl.classList.contains('on')) {
       toggleCaptureImagesSetting(captureImagesTgl);
     }
-    // 4. Open on Windows Startup: off
+    // 4. Open on Windows Startup: on
     const autostartTgl = document.getElementById('stAutostartToggle');
-    if (autostartTgl && autostartTgl.classList.contains('on')) {
+    if (autostartTgl && !autostartTgl.classList.contains('on')) {
       toggleAutostartSetting(autostartTgl);
     }
     if (typeof showToast === 'function') {

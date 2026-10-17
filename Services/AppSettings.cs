@@ -10,7 +10,7 @@ public class AppSettingsData
 {
     // Behavior & General
     public bool StartHidden { get; set; } = false;
-    public bool StartWithWindows { get; set; } = false;
+    public bool StartWithWindows { get; set; } = true;
     public bool IsPaused { get; set; } = false;
     public DateTime? PausedUntilUtc { get; set; } = null;
     public int MinClipLength { get; set; } = 1;
@@ -145,6 +145,10 @@ public static class AppSettings
                     var data = JsonSerializer.Deserialize<AppSettingsData>(json);
                     if (data != null)
                     {
+                        if (data.StartWithWindows && !GetStartWithWindows() && !PathHelper.IsPortableMode)
+                        {
+                            SetStartWithWindows(true);
+                        }
                         data.StartWithWindows = GetStartWithWindows();
                         if (data.AutoSortRules == null || data.AutoSortRules.Count == 0)
                         {
@@ -165,6 +169,10 @@ public static class AppSettings
                     var data = JsonSerializer.Deserialize<AppSettingsData>(json);
                     if (data != null)
                     {
+                        if (data.StartWithWindows && !GetStartWithWindows() && !PathHelper.IsPortableMode)
+                        {
+                            SetStartWithWindows(true);
+                        }
                         data.StartWithWindows = GetStartWithWindows();
                         if (data.AutoSortRules == null || data.AutoSortRules.Count == 0)
                         {
@@ -178,6 +186,10 @@ public static class AppSettings
             }
 
             var def = new AppSettingsData();
+            if (!PathHelper.IsPortableMode)
+            {
+                SetStartWithWindows(true);
+            }
             def.StartWithWindows = GetStartWithWindows();
             _cached = def;
             return def;
