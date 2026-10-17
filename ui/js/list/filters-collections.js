@@ -591,7 +591,8 @@ function openPillMenu(event, colId) {
     event.stopPropagation();
     if (typeof event.preventDefault === 'function') event.preventDefault();
   }
-  if (activePillMenuColId === colId) {
+  const isRightClick = !!(event && (event.type === 'contextmenu' || event.button === 2));
+  if (!isRightClick && activePillMenuColId === colId) {
     closePillMenu();
     return;
   }
@@ -690,11 +691,7 @@ function openPillMenu(event, colId) {
     menu.style.left = `${Math.round(left)}px`;
   }
 
-  requestAnimationFrame(() => {
-    if (activePillMenuColId === colId && menu.style.display !== 'none') {
-      menu.style.visibility = '';
-    }
-  });
+  menu.style.visibility = '';
 }
 
 function triggerPillUnnest() {
