@@ -190,7 +190,7 @@ function reset() {
   global.activeFilterTime = 'any';
   global.allClips = [];
   global.clips = [];
-  global.collapsedGroups = { today: false, yesterday: false, older: false };
+  global.collapsedGroups = { pinned: false, today: false, yesterday: false, older: false };
   setEl('searchInput', { value: '' });
 }
 
@@ -447,6 +447,24 @@ const renameModalLifecycle = () => check(
   }
 );
 
+
+// --- Part M: searching auto-selects first result and down arrow cycles down ---
+const searchAutoSelectsFirstResult = () => check(
+  'search_auto_selects_first_result_and_cycles_down',
+  async () => {
+    reset();
+    searchAllClips();
+    setQuery('alpha');
+    assertEq(global.selectedIndex, 0, 'first search result is auto-selected');
+    assertEq(global.selectedIndices.size, 1, 'single selection on search');
+    assert(global.selectedIndices.has(0), 'selected set contains index 0');
+    fireKey('ArrowDown');
+    assertEq(global.selectedIndex, 1, 'ArrowDown moves to second result');
+    fireKey('ArrowDown');
+    assertEq(global.selectedIndex, 2, 'ArrowDown moves to third result');
+  }
+);
+
 // --- Part L: preview close restores list focus and clears state -------------
 const previewCloseRestoresFocus = () => check(
   'preview_close_restores_list_focus_and_clears_state',
@@ -476,6 +494,7 @@ const previewCloseRestoresFocus = () => check(
   await previewPinNotifiesHost();
   await renameModalLifecycle();
   await previewCloseRestoresFocus();
+  await searchAutoSelectsFirstResult();
 
   const failed = results.filter((r) => !r.ok).length;
   console.log('');

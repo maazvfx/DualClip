@@ -55,7 +55,7 @@ const SETTING_DEFAULTS = Object.freeze({
   dualclip_remember_selected_clip: { def: false, type: 'bool' },
   dualclip_collection_sort_order: { def: 'newest', type: 'enum', values: ['newest', 'oldest', 'alpha', 'most_used'] },
   dualclip_custom_collections: { def: '[]', type: 'string' },
-  dualclip_collapsed_groups: { def: '[]', type: 'string' },
+  dualclip_collapsed_groups: { def: '{}', type: 'string' },
   dualclip_bottom_bar_hidden: { def: false, type: 'bool' },
   dualclip_direct_col_shortcuts: { def: true, type: 'bool' },
   dualclip_mirror_in_all: { def: false, type: 'bool' },

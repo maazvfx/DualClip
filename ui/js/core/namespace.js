@@ -190,17 +190,17 @@ function isFeatureEnabled(name) {
 }
 
 // Persistent Section Collapse State (Default: all expanded)
-var collapsedGroups = { today: false, yesterday: false, older: false };
+var collapsedGroups = { pinned: false, today: false, yesterday: false, older: false };
 try {
   const savedGroups = localStorage.getItem('dualclip_collapsed_groups');
   if (savedGroups) {
     const parsed = JSON.parse(savedGroups);
-    if (parsed && typeof parsed === 'object') {
-      collapsedGroups = Object.assign({ today: false, yesterday: false, older: false }, parsed);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      collapsedGroups = Object.assign({ pinned: false, today: false, yesterday: false, older: false }, parsed);
     }
   }
 } catch(e) {
-  collapsedGroups = { today: false, yesterday: false, older: false };
+  collapsedGroups = { pinned: false, today: false, yesterday: false, older: false };
 }
 
 // Interaction & Display State
@@ -222,7 +222,8 @@ try {
     currentLineDisplay = 'auto';
     try { localStorage.setItem('dualclip_line_display', 'auto'); } catch(e) {}
   }
-  groupingMode = localStorage.getItem('dualclip_grouping_mode') || 'date';
+  const rawGrouping = localStorage.getItem('dualclip_grouping_mode') || 'date';
+  groupingMode = (rawGrouping === 'time') ? 'date' : rawGrouping;
   isGroupedView = groupingMode !== 'none';
   sectionClickMode = localStorage.getItem('dualclip_section_click_mode') || 'chevron_only';
   currentThumbSize = localStorage.getItem('dualclip_thumb_size') || 'sm';

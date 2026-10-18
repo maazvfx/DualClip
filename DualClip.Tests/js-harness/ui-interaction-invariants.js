@@ -207,7 +207,7 @@ function reset() {
   global.contextTargetIndex = -1;
   global.clips = [];
   global.customCollections = [];
-  global.collapsedGroups = { today: false, yesterday: false, older: false };
+  global.collapsedGroups = { pinned: false, today: false, yesterday: false, older: false };
 }
 
 function testClips() {

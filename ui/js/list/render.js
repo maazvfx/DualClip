@@ -879,7 +879,7 @@ function renderList(opts) {
   if (groupingMode !== 'none' && currentCollection !== 'most_used') {
     const groups = {};
 
-    if (groupingMode === 'date') {
+    if (groupingMode === 'date' || groupingMode === 'time') {
       groups['pinned'] = { title: 'Pinned', items: [] };
       groups['today'] = { title: 'Today', items: [] };
       groups['yesterday'] = { title: 'Yesterday', items: [] };

@@ -923,7 +923,34 @@ function applyFilters() {
   renderActivePills();
   updateSearchResultCount();
   updateFilterBtnState();
-  if (typeof revalidateSelectionFromIds === 'function') revalidateSelectionFromIds();
+  const isSearching = !!rawInput;
+  if (isSearching) {
+    if (clips.length > 0) {
+      const currentSelectedId = selectedIds.size === 1 ? Array.from(selectedIds)[0] : null;
+      const matchedIdx = currentSelectedId != null ? clips.findIndex(c => c && c.id === currentSelectedId) : -1;
+      if (matchedIdx >= 0) {
+        selectedIndex = matchedIdx;
+        selectedIndices.clear();
+        selectedIndices.add(matchedIdx);
+        lastAnchorIndex = matchedIdx;
+      } else {
+        selectedIndex = 0;
+        selectedIndices.clear();
+        selectedIndices.add(0);
+        lastAnchorIndex = 0;
+        selectedIds.clear();
+        if (clips[0] && clips[0].id != null) selectedIds.add(clips[0].id);
+      }
+    } else {
+      selectedIndex = -1;
+      selectedIndices.clear();
+      lastAnchorIndex = -1;
+      selectedIds.clear();
+    }
+    if (typeof syncLivePreview === 'function') syncLivePreview();
+  } else {
+    if (typeof revalidateSelectionFromIds === 'function') revalidateSelectionFromIds();
+  }
   if (typeof renderList === 'function') renderList();
   if (typeof updateSidebarCounts === 'function') {
     try { updateSidebarCounts(); } catch(e) {}
@@ -1144,6 +1171,7 @@ if (searchInputEl) {
   searchInputEl.addEventListener('input', () => {
     closeRecentSearchesDropdown();
     expandedIndex = -1;
+    selectedIds.clear();
     applyFilters();
 
     clearTimeout(searchDebounceTimer);
