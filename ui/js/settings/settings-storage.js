@@ -192,10 +192,23 @@ function changeMaxClipsSetting(val) {
 }
 
 function changeAutoExpireSetting(val) {
-  const days = parseInt(val, 10) || 0;
-  try { localStorage.setItem('dualclip_auto_expire_days', String(days)); } catch(e) {}
-  if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.set_auto_expire_days === 'function') {
-    window.pywebview.api.set_auto_expire_days(days);
+  const settingVal = String(val || '0');
+  try { localStorage.setItem('dualclip_auto_expire_days', settingVal); } catch(e) {}
+
+  let hours = 0;
+  if (settingVal === '1h') hours = 1;
+  else if (settingVal === '6h') hours = 6;
+  else {
+    const days = parseFloat(settingVal) || 0;
+    hours = days * 24;
+  }
+
+  if (window.pywebview && window.pywebview.api) {
+    if (typeof window.pywebview.api.set_auto_expire_hours === 'function') {
+      window.pywebview.api.set_auto_expire_hours(hours);
+    } else if (typeof window.pywebview.api.set_auto_expire_days === 'function') {
+      window.pywebview.api.set_auto_expire_days(settingVal === '1h' || settingVal === '6h' ? settingVal : (hours / 24));
+    }
   }
   notifySettingSaved('row_auto_expire');
 }

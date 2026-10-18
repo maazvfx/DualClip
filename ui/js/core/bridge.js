@@ -213,6 +213,8 @@
       get_clip_text: (id) => callHost('get_clip_text', [id]),
       set_auto_expire_days: (days) => callHost('set_auto_expire_days', [days]),
       get_auto_expire_days: () => callHost('get_auto_expire_days', []),
+      set_auto_expire_hours: (hours) => callHost('set_auto_expire_hours', [hours]),
+      get_auto_expire_hours: () => callHost('get_auto_expire_hours', []),
       // Tagging RPCs
       set_tags_for_clip: (id, tags) => callHost('set_tags_for_clip', [id, tags]),
       get_tags_for_clip: (id) => callHost('get_tags_for_clip', [id]),

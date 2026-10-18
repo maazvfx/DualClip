@@ -1756,16 +1756,35 @@ public partial class MainForm
                     break;
 
                 case "set_auto_expire_days":
-                    if (args.ValueKind == JsonValueKind.Array && args.GetArrayLength() > 0 && TryGetInt(args[0], out int days))
+                case "set_auto_expire_hours":
+                    if (args.ValueKind == JsonValueKind.Array && args.GetArrayLength() > 0)
                     {
+                        double hours = 0;
+                        var first = args[0];
+                        if (first.ValueKind == JsonValueKind.String)
+                        {
+                            string sVal = first.GetString() ?? "";
+                            if (sVal == "1h") hours = 1;
+                            else if (sVal == "6h") hours = 6;
+                            else if (double.TryParse(sVal, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double parsedVal))
+                            {
+                                hours = method == "set_auto_expire_hours" ? parsedVal : parsedVal * 24.0;
+                            }
+                        }
+                        else if (TryGetDouble(first, out double numVal))
+                        {
+                            hours = method == "set_auto_expire_hours" ? numVal : numVal * 24.0;
+                        }
+
                         var s = AppSettings.Load();
-                        s.AutoExpireDays = days;
+                        s.AutoExpireHours = hours;
+                        s.AutoExpireDays = (int)Math.Round(hours / 24.0);
                         AppSettings.Save(s);
-                        if (days > 0)
+                        if (hours > 0)
                         {
                             _ = Task.Run(() =>
                             {
-                                int purged = _db.PurgeExpiredClips(days);
+                                int purged = _db.PurgeExpiredClipsHours(hours);
                                 if (purged > 0)
                                 {
                                     PostEventToJs("refreshClips", new { });
@@ -1779,7 +1798,9 @@ public partial class MainForm
                     break;
 
                 case "get_auto_expire_days":
-                    SendRpcResponse(rpcId, new { ok = true, days = AppSettings.Load().AutoExpireDays });
+                case "get_auto_expire_hours":
+                    var curExp = AppSettings.Load();
+                    SendRpcResponse(rpcId, new { ok = true, days = curExp.AutoExpireDays, hours = curExp.GetEffectiveAutoExpireHours() });
                     break;
 
                 case "set_quick_number_paste":
@@ -1983,11 +2004,12 @@ public partial class MainForm
                 case "ui_ready":
                     FlushPendingEventsToJs();
                     var curSettings = AppSettings.Load();
-                    if (curSettings.AutoExpireDays > 0)
+                    double effHours = curSettings.GetEffectiveAutoExpireHours();
+                    if (effHours > 0)
                     {
                         _ = Task.Run(() =>
                         {
-                            int purged = _db.PurgeExpiredClips(curSettings.AutoExpireDays);
+                            int purged = _db.PurgeExpiredClipsHours(effHours);
                             if (purged > 0)
                             {
                                 PostEventToJs("refreshClips", new { });

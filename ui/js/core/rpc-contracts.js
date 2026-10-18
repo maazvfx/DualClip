@@ -134,6 +134,8 @@
     get_prevent_screen_capture: { args: [] },
     set_auto_expire_days: { args: ['days'] },
     get_auto_expire_days: { args: [] },
+    set_auto_expire_hours: { args: ['hours'] },
+    get_auto_expire_hours: { args: [] },
 
     // B1: set/get_notify_oversized_clips and set/get_clear_on_lock(_scope) were removed.
     // They modelled AppSettings.ClearOnLock/ClearOnLockScope/NotifyOversizedClips, all of

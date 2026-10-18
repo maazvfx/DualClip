@@ -460,14 +460,34 @@ function syncSettingsUiFromStorage() {
     const savedAutoExpire = localStorage.getItem('dualclip_auto_expire_days') || '0';
     const autoExpireSel = document.getElementById('stAutoExpireSelect');
     if (autoExpireSel) autoExpireSel.value = savedAutoExpire;
-    if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.get_auto_expire_days === 'function') {
-      window.pywebview.api.get_auto_expire_days().then(res => {
-        if (res && typeof res.days === 'number') {
-          try { localStorage.setItem('dualclip_auto_expire_days', String(res.days)); } catch {}
-          const sel = document.getElementById('stAutoExpireSelect');
-          if (sel) sel.value = String(res.days);
-        }
-      }).catch(() => {});
+    if (window.pywebview && window.pywebview.api) {
+      const getExp = typeof window.pywebview.api.get_auto_expire_hours === 'function'
+        ? window.pywebview.api.get_auto_expire_hours()
+        : (typeof window.pywebview.api.get_auto_expire_days === 'function' ? window.pywebview.api.get_auto_expire_days() : null);
+      if (getExp) {
+        getExp.then(res => {
+          if (res) {
+            let matchedVal = null;
+            if (typeof res.hours === 'number') {
+              if (res.hours === 0) matchedVal = '0';
+              else if (res.hours === 1) matchedVal = '1h';
+              else if (res.hours === 6) matchedVal = '6h';
+              else if (res.hours === 24) matchedVal = '1';
+              else if (res.hours === 168) matchedVal = '7';
+              else if (res.hours === 720) matchedVal = '30';
+              else if (res.hours === 2160) matchedVal = '90';
+              else matchedVal = String(Math.round(res.hours / 24));
+            } else if (typeof res.days === 'number') {
+              matchedVal = String(res.days);
+            }
+            if (matchedVal !== null) {
+              try { localStorage.setItem('dualclip_auto_expire_days', matchedVal); } catch {}
+              const sel = document.getElementById('stAutoExpireSelect');
+              if (sel) sel.value = matchedVal;
+            }
+          }
+        }).catch(() => {});
+      }
     }
 
     // Hydrate selection highlight mode

@@ -2516,6 +2516,21 @@ public partial class MainForm : Form
         return false;
     }
 
+    private static bool TryGetDouble(JsonElement elem, out double value)
+    {
+        value = 0;
+        if (elem.ValueKind == JsonValueKind.Number)
+        {
+            return elem.TryGetDouble(out value);
+        }
+        if (elem.ValueKind == JsonValueKind.String)
+        {
+            return double.TryParse(elem.GetString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out value)
+                || double.TryParse(elem.GetString(), out value);
+        }
+        return false;
+    }
+
     private static bool IsGifBytes(byte[] bytes)
     {
         if (bytes == null || bytes.Length < 6) return false;

@@ -1256,16 +1256,18 @@ public partial class DatabaseService
         }
     }
 
-    public int PurgeExpiredClips(int expireDays)
+    public int PurgeExpiredClips(int expireDays) => PurgeExpiredClipsHours(expireDays * 24.0);
+
+    public int PurgeExpiredClipsHours(double expireHours)
     {
-        if (expireDays <= 0) return 0;
+        if (expireHours <= 0) return 0;
         int deletedCount = 0;
         lock (_gate)
         {
             var victims = new List<string>();
             try
             {
-                long cutoffEpoch = DateTimeOffset.UtcNow.AddDays(-expireDays).ToUnixTimeSeconds();
+                long cutoffEpoch = DateTimeOffset.UtcNow.AddHours(-expireHours).ToUnixTimeSeconds();
                 using var conn = new SqliteConnection(_connectionString);
                 conn.Open();
 

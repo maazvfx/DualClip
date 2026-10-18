@@ -28,6 +28,14 @@ public class AppSettingsData
     public bool TrackStats { get; set; } = true;
     public bool RestoreClipboard { get; set; } = false;
     public int AutoExpireDays { get; set; } = 0; // 0 = never
+    public double AutoExpireHours { get; set; } = 0; // 0 = never
+
+    public double GetEffectiveAutoExpireHours()
+    {
+        if (AutoExpireHours > 0) return AutoExpireHours;
+        if (AutoExpireDays > 0) return AutoExpireDays * 24.0;
+        return 0;
+    }
     public bool IsSupporter { get; set; } = false;
     public bool PreventScreenCapture { get; set; } = false;
 
