@@ -101,6 +101,7 @@ public static class AppSettings
     private static readonly object _gate = new();
     private static volatile AppSettingsData? _cached;
     private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
+    private const string StartupApprovedPath = @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
     private const string AppRunName = "DualClip";
 
     public static string GetFilePath()
@@ -227,7 +228,18 @@ public static class AppSettings
         try
         {
             using var key = Registry.CurrentUser.OpenSubKey(RunKeyPath, false);
-            return key?.GetValue(AppRunName) != null;
+            if (key?.GetValue(AppRunName) == null) return false;
+
+            // Also check if Task Manager has explicitly disabled it in StartupApproved
+            using var approvedKey = Registry.CurrentUser.OpenSubKey(StartupApprovedPath, false);
+            if (approvedKey?.GetValue(AppRunName) is byte[] bytes && bytes.Length > 0)
+            {
+                if ((bytes[0] & 1) != 0)
+                {
+                    return false;
+                }
+            }
+            return true;
         }
         catch
         {
@@ -253,12 +265,38 @@ public static class AppSettings
                         exePath = Path.ChangeExtension(exePath, ".exe");
                     }
                     key.SetValue(AppRunName, $"\"{exePath}\" --hidden");
+
+                    // Ensure Windows Task Manager / StartupApproved does not block it
+                    try
+                    {
+                        using var approvedKey = Registry.CurrentUser.OpenSubKey(StartupApprovedPath, true);
+                        if (approvedKey != null)
+                        {
+                            if (approvedKey.GetValue(AppRunName) is byte[] bytes && bytes.Length >= 4)
+                            {
+                                bytes[0] = 0x02; // Set to enabled
+                                approvedKey.SetValue(AppRunName, bytes, RegistryValueKind.Binary);
+                            }
+                            else
+                            {
+                                approvedKey.DeleteValue(AppRunName, false);
+                            }
+                        }
+                    }
+                    catch { }
+
                     return true;
                 }
             }
             else
             {
                 key.DeleteValue(AppRunName, false);
+                try
+                {
+                    using var approvedKey = Registry.CurrentUser.OpenSubKey(StartupApprovedPath, true);
+                    approvedKey?.DeleteValue(AppRunName, false);
+                }
+                catch { }
                 return true;
             }
         }
