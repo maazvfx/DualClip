@@ -527,6 +527,7 @@ const SETTINGS_SEARCH_INDEX = [
 
   // 4. List Organization (now under Appearance)
   { id: 'row_grouping_mode', tab: 'theme', label: 'Group clips by', desc: 'Organize history with recency landmarks or display a clean continuous stream', keywords: 'grouping group clips by section time none continuous recency landmarks' },
+  { id: 'row_global_section_collapse', tab: 'theme', label: 'Sync section collapse across collections', desc: 'Keep sections collapsed or expanded across all collections instead of remembering each individually', keywords: 'sync section collapse expand pinned collections global individual' },
 
   // 5. Routing Rules & Privacy
   { id: 'row_autosort_rules', tab: 'routing', label: 'Routing Rules', desc: 'Automatically route clips into collections based on the source application', keywords: 'auto sort routing rules application process collection map vscode chrome slack' },

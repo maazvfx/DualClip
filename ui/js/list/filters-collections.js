@@ -1439,6 +1439,7 @@ function selectCollection(colId) {
     if (colId !== 'all') { selectCollection('all'); return; }
   }
   currentCollection = colId;
+  if (typeof syncActiveCollapsedGroups === 'function') syncActiveCollapsedGroups();
   document.querySelectorAll('.col-pill').forEach(p => p.classList.remove('active'));
   const activePill = document.getElementById(`pill_${colId}`);
   if (activePill) activePill.classList.add('active');

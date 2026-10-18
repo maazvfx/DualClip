@@ -612,7 +612,15 @@ window.pasteCurrentSelection = function() {
 function toggleGroupCollapse(grpKey) {
   collapsedGroups[grpKey] = !collapsedGroups[grpKey];
   try {
-    localStorage.setItem('dualclip_collapsed_groups', JSON.stringify(collapsedGroups));
+    if (typeof globalSectionCollapse !== 'undefined' && globalSectionCollapse) {
+      localStorage.setItem('dualclip_collapsed_groups', JSON.stringify(collapsedGroups));
+    } else {
+      const colId = (typeof getActiveCollectionId === 'function') ? getActiveCollectionId() : ((typeof currentCollection !== 'undefined' && currentCollection) ? currentCollection : 'all');
+      if (typeof collapsedGroupsByCollection === 'undefined') collapsedGroupsByCollection = {};
+      if (!collapsedGroupsByCollection[colId]) collapsedGroupsByCollection[colId] = {};
+      collapsedGroupsByCollection[colId][grpKey] = collapsedGroups[grpKey];
+      localStorage.setItem('dualclip_collapsed_groups_by_collection', JSON.stringify(collapsedGroupsByCollection));
+    }
   } catch(e) {}
   // Keep the toggled header anchored in the viewport so collapse/expand never jumps the list
   const container = document.getElementById('listContainer');
@@ -875,6 +883,7 @@ function renderList(opts) {
   container.style.paddingBottom = '';
 
   currentFlatItems = [];
+  if (typeof syncActiveCollapsedGroups === 'function') syncActiveCollapsedGroups();
 
   if (groupingMode !== 'none' && currentCollection !== 'most_used') {
     const groups = {};

@@ -1,4 +1,4 @@
-﻿// --- DualClip Core Namespace & Shared State ---
+// --- DualClip Core Namespace & Shared State ---
 window.DC = window.DC || {};
 
 // --- Cold-start frontend timing (pairs with C# StartupProfiler) ---
@@ -190,7 +190,50 @@ function isFeatureEnabled(name) {
 }
 
 // Persistent Section Collapse State (Default: all expanded)
+var globalSectionCollapse = false;
+try {
+  globalSectionCollapse = localStorage.getItem('dualclip_global_section_collapse') === '1';
+} catch(e) {
+  globalSectionCollapse = false;
+}
+
 var collapsedGroups = { pinned: false, today: false, yesterday: false, older: false };
+var collapsedGroupsByCollection = {};
+
+try {
+  const savedByCol = localStorage.getItem('dualclip_collapsed_groups_by_collection');
+  if (savedByCol) {
+    const parsed = JSON.parse(savedByCol);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      collapsedGroupsByCollection = parsed;
+    }
+  }
+} catch(e) {
+  collapsedGroupsByCollection = {};
+}
+
+function getActiveCollectionId() {
+  return (typeof currentCollection !== 'undefined' && currentCollection) ? currentCollection : 'all';
+}
+
+function syncActiveCollapsedGroups() {
+  if (globalSectionCollapse) return;
+  const colId = getActiveCollectionId();
+  if (!collapsedGroupsByCollection[colId]) {
+    collapsedGroupsByCollection[colId] = { pinned: false, today: false, yesterday: false, older: false };
+  }
+  const currentStates = collapsedGroupsByCollection[colId];
+  for (const k of Object.keys(collapsedGroups)) {
+    collapsedGroups[k] = false;
+  }
+  Object.assign(collapsedGroups, { pinned: false, today: false, yesterday: false, older: false }, currentStates);
+}
+
+window.globalSectionCollapse = globalSectionCollapse;
+window.collapsedGroupsByCollection = collapsedGroupsByCollection;
+window.getActiveCollectionId = getActiveCollectionId;
+window.syncActiveCollapsedGroups = syncActiveCollapsedGroups;
+
 try {
   const savedGroups = localStorage.getItem('dualclip_collapsed_groups');
   if (savedGroups) {
@@ -202,6 +245,8 @@ try {
 } catch(e) {
   collapsedGroups = { pinned: false, today: false, yesterday: false, older: false };
 }
+syncActiveCollapsedGroups();
+
 
 // Interaction & Display State
 

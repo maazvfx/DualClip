@@ -334,6 +334,13 @@ function syncSettingsUiFromStorage() {
       autofocusTgl.classList.toggle('on', afOn);
     }
 
+    const globalSectionCollapseTgl = document.getElementById('stGlobalSectionCollapseToggle');
+    if (globalSectionCollapseTgl) {
+      let gscOn = false;
+      try { gscOn = localStorage.getItem('dualclip_global_section_collapse') === '1'; } catch(e) {}
+      globalSectionCollapseTgl.classList.toggle('on', gscOn);
+    }
+
     const savedSectionClick = localStorage.getItem('dualclip_section_click_mode') || 'chevron_only';
     changeSectionClickMode(savedSectionClick, false);
 
@@ -1343,7 +1350,10 @@ function restoreCurrentTabDefaults() {
     if (typeof applyHideWindowBorderSetting === 'function') applyHideWindowBorderSetting(false, false);
     if (typeof changeUnifiedClipDetails === 'function') changeUnifiedClipDetails('auto');
 
-    ['row_theme_mode', 'row_zoom', 'row_visual_style', 'row_zebra', 'row_label_style', 'row_line_display', 'row_thumb_size', 'row_clip_details'].forEach(notifySettingSaved);
+    const gscTgl = document.getElementById('stGlobalSectionCollapseToggle');
+    if (gscTgl && gscTgl.classList.contains('on')) toggleGlobalSectionCollapseSetting(gscTgl);
+
+    ['row_theme_mode', 'row_zoom', 'row_visual_style', 'row_zebra', 'row_label_style', 'row_line_display', 'row_thumb_size', 'row_clip_details', 'row_global_section_collapse'].forEach(notifySettingSaved);
   } else if (tab === 'window') {
     // Reset hotkey to Ctrl+Shift+V, Double click: paste, Open at: near, Window size: default, Remember size: on
     resetDefaultHotkey();
@@ -1365,8 +1375,10 @@ function restoreCurrentTabDefaults() {
     changeGroupingMode('time', false);
     const gmSel = document.getElementById('stGroupingModeSelect');
     if (gmSel) gmSel.value = 'time';
+    const gscTglSearch = document.getElementById('stGlobalSectionCollapseToggle');
+    if (gscTglSearch && gscTglSearch.classList.contains('on')) toggleGlobalSectionCollapseSetting(gscTglSearch);
 
-    ['row_grouping_mode'].forEach(notifySettingSaved);
+    ['row_grouping_mode', 'row_global_section_collapse'].forEach(notifySettingSaved);
   } else if (tab === 'routing') {
     // Passwords: on, Images: on, Blocklist: on, Mirror in all: on, Screen capture protection: off (default)
     const pwTgl = document.getElementById('stIgnorePasswordsToggle');

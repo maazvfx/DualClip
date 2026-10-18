@@ -480,6 +480,31 @@ window.toggleAutofocusSearchSetting = toggleAutofocusSearchSetting;
 
 
 
+function toggleGlobalSectionCollapseSetting(el) {
+  const willBeOn = el ? !el.classList.contains('on') : false;
+  if (el) el.classList.toggle('on', willBeOn);
+  globalSectionCollapse = willBeOn;
+  try {
+    localStorage.setItem('dualclip_global_section_collapse', willBeOn ? '1' : '0');
+  } catch(e) {}
+  if (!willBeOn) {
+    const colId = (typeof getActiveCollectionId === 'function') ? getActiveCollectionId() : ((typeof currentCollection !== 'undefined' && currentCollection) ? currentCollection : 'all');
+    if (typeof collapsedGroupsByCollection === 'undefined') collapsedGroupsByCollection = {};
+    if (!collapsedGroupsByCollection[colId]) collapsedGroupsByCollection[colId] = {};
+    Object.assign(collapsedGroupsByCollection[colId], collapsedGroups);
+    try {
+      localStorage.setItem('dualclip_collapsed_groups_by_collection', JSON.stringify(collapsedGroupsByCollection));
+    } catch(e) {}
+  } else {
+    try {
+      localStorage.setItem('dualclip_collapsed_groups', JSON.stringify(collapsedGroups));
+    } catch(e) {}
+  }
+  if (typeof renderList === 'function') renderList();
+  if (typeof notifySettingSaved === 'function') notifySettingSaved('row_global_section_collapse');
+}
+window.toggleGlobalSectionCollapseSetting = toggleGlobalSectionCollapseSetting;
+
 function changeSectionClickMode(mode, notify = true) {
   sectionClickMode = mode;
   const sel = document.getElementById('stSectionClickSelect');
@@ -810,3 +835,4 @@ window.switchDensityPreview = switchDensityPreview;
 window.toggleZebraSetting = toggleZebraSetting;
 window.applyCollectionsBarState = applyCollectionsBarState;
 window.toggleCollectionsBar = toggleCollectionsBar;
+window.toggleGlobalSectionCollapseSetting = toggleGlobalSectionCollapseSetting;
