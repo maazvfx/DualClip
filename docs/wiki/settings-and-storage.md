@@ -75,12 +75,11 @@ Representative keys: `dualclip_theme`, `dualclip_visual_style`, `dualclip_zoom`,
 
 ## 🧹 URL cleaning
 
-[`Services/UrlCleaner.cs`](../../Services/UrlCleaner.cs) `CleanUrl` strips tracking parameters, matching both an exact set (`utm_*`, `gclid`, `gclsrc`, `dclid`, `fbclid`, `msclkid`, `igshid`, `ttclid`, `twclid`, …) and prefixes (`utm_`, `pd_rd_`, `pf_rd_`, `ref_`).
+Tracking-parameter cleaning runs in the frontend. `cleanTrackingUrl()` in [`ui/js/list/actions.js`](../../ui/js/list/actions.js) removes tracking parameters such as `utm_*` and `fbclid` from a URL clip. The clip's context-menu clean-URL action copies the cleaned link. The old C# `UrlCleaner.cs` was removed as dead code.
 
 ---
 
 ## 🧪 Invariant Tests
-- `DualClip.Tests/UrlCleanerTests.cs`
 - `DualClip.Tests/PackageValidationTests.cs`
 - `DualClip.Tests/ClearOnLockTests.cs`
 - `DualClip.Tests/WindowSizePolicyTests.cs`

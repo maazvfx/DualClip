@@ -30,7 +30,7 @@ Links are relative, so this index works from any checkout location.
 ## 🧪 Testing & Invariant Verification
 
 - **[Testing Matrix & Invariant Suites](testing-matrix.md)**
-  - All 9 Node.js invariant harnesses and 31 .NET xUnit suites with execution commands.
+  - All Node.js invariant harnesses and .NET xUnit suites, with execution commands.
 
 ---
 

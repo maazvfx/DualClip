@@ -43,7 +43,7 @@ Sniffed in this order; the first match wins.
 1. **File drop (`CF_HDROP`)** — multi-file Explorer drop lists parsed into paths.
 2. **SVG** — a single `.svg` drop under 2 MB is read and sanitized through `TryParseSvg`, then captured as a vector clip (`ClipboardListener.cs:710-726`).
 3. **Rich text / source URL** — RTF and source-URL extraction, then plain text (`ClipboardListener.cs:1481+`).
-4. **Text** — length gates: `MinClipLength`, `IgnoreWhitespaceOnly`. URLs are sanitized via [`Services/UrlCleaner.cs`](../../Services/UrlCleaner.cs).
+4. **Text** — length gates: `MinClipLength`, `IgnoreWhitespaceOnly`. Captured text is stored as copied. Tracking-parameter cleaning is a separate action (see [settings-and-storage.md](settings-and-storage.md#url-cleaning)).
 5. **Image** — only when `CaptureImages` is on. Rejected above `MaxImagePixelArea`, which raises `OversizedClipDropped` (`ClipboardListener.cs:830-835`).
 
 Every capture path is dispatched through the queue as `ProcessCapturedText` / `ProcessCapturedImage` / `ProcessCapturedSvg`, so the STA thread never blocks on I/O.

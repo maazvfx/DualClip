@@ -2,8 +2,8 @@
 
 ## Overview
 DualClip has a dual-layer test strategy:
-- **Node.js harnesses** (9 files) execute the *real* frontend modules inside a DOM shim and assert behaviour.
-- **.NET xUnit suites** (31 files) cover backend persistence, search SQL, window geometry, packaging, and structural contracts over the JS/C# boundary.
+- **Node.js harnesses** execute the *real* frontend modules inside a DOM shim and assert behaviour.
+- **.NET xUnit suites** cover backend persistence, search SQL, window geometry, packaging, and structural contracts over the JS/C# boundary.
 
 There is no test runner script — run both layers manually.
 
@@ -23,6 +23,7 @@ Run from the repo root. These load real source via `vm.runInThisContext`, so a t
 | `group-count-invariants.js` | Group header counts render `N+` when a run hits the end of the loaded page window |
 | `mode-switch-invariants.js` | `changeQuickViewLayoutPreset()` for Standard / Compact / Expanded |
 | `pagination-invariants.js` | `loadNextClipPage()` index clamping and viewport chunking |
+| `about-links-invariants.js` | About, Website, and Tip links: fallback URLs, cached remote links, and the supporter prompt |
 
 Run one:
 ```powershell
@@ -59,6 +60,7 @@ dotnet test DualClip.Tests/DualClip.Tests.csproj
 | `PackageValidationTests` | `.dualclip` / `.zip` validation and rejection paths |
 | `AddTextToCollectionTests` | Add-to-collection flow |
 | `ClipRenameTests` | Clip rename |
+| `StressAndEdgeTests` | Edge cases and high-frequency capture against real SQLite files |
 
 ### Search
 | Suite | Asserts |
@@ -79,6 +81,7 @@ dotnet test DualClip.Tests/DualClip.Tests.csproj
 | `SvgVectorCaptureTests` | SVG vector capture |
 | `GifCaptureTests` | Animated GIF capture |
 | `OversizedDropNotificationTests` | Oversized-drop notification |
+| `DoubleCopyOverrideTests` | Double-copy override for blocked applications |
 
 ### Window geometry
 | Suite | Asserts |
@@ -96,10 +99,11 @@ dotnet test DualClip.Tests/DualClip.Tests.csproj
 | `GroupCountPaginationTests` | Group counts + pagination fixes |
 | `QuickNumberPasteTests` | Quick-number paste stepping |
 
-### Support
+### Hotkeys & security
 | Suite | Asserts |
 | :--- | :--- |
-| `UrlCleanerTests` | Tracking-parameter stripping |
+| `HotkeyTogglePolicyTests` | Show or hide decision for the summon hotkey |
+| `OpenExternalUrlGuardTests` | Scheme whitelist on the external-link RPC (structural check) |
 
 `TestDb.cs` is a shared fixture/helper, not a suite.
 
