@@ -23,7 +23,7 @@ Links are relative, so this index works from any checkout location.
 - **[Settings & Preferences Engine](settings-and-storage.md)**
   - `localStorage` mirrors, hotkey recorder, portable vs installed paths, backup/export/restore, and the URL cleaner.
 - **[RPC Bridge & Frontend-Host Contracts](rpc-and-bridge.md)**
-  - `callHost` / `PostWebMessageAsJson` protocols, the 119-method contract registry, and host event payloads.
+  - `callHost` / `PostWebMessageAsJson` protocols, the contract registry, and host event payloads.
 
 ---
 

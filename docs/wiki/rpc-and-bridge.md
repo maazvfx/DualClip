@@ -77,7 +77,7 @@ Each guard is a `typeof === 'function'` check, so these are inert rather than br
 
 ---
 
-## 📑 The contract registry (119 methods)
+## 📑 The contract registry
 
 `rpc-contracts.js` holds `RpcContracts`, mapping every method to its positional argument names. `callHostChecked(method, {named: value})` expands the named object into a positional array using `buildRpcArgs` (`rpc-contracts.js:156`), applying declared `defaults` and inserting `null` for undeclared omissions.
 
@@ -90,7 +90,7 @@ Each guard is a `typeof === 'function'` check, so these are inert rather than br
 - contract arg names are unique identifiers,
 - no handler reads an `args[n]` index beyond its declared arity.
 
-The only deviation tolerated today is an uncontracted method falling back to positional `callHost`. Current state: **119 contracts, 119 handlers, zero drift.**
+The only deviation tolerated today is an uncontracted method falling back to positional `callHost`. Current state: every contract has a handler and every handler has a contract, with zero drift. The test checks the counts, so this page does not repeat them.
 
 ### Groups
 | Group | Examples |

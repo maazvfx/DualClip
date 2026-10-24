@@ -58,6 +58,18 @@ Parsed inside the substring collector (`SearchOptimized.cs:598-608`):
 ### SQL injection safety
 `EscapeLike` doubles `\`, `%`, and `_` (`DatabaseService.Search.cs:14`), and every LIKE clause declares `ESCAPE '\'`. All values are bound parameters — never string-interpolated into SQL.
 
+### Result order
+
+The backend sets the order of search results, and the frontend shows them as returned.
+
+- **Default:** most recently used first (`last_used_at`), then match score, then `sort_rank`, then newest. Use count does not affect search order. The "Most Used" collection still sorts by use count.
+- **Boosts:** the frontend sends the order as the `sort` argument of `get_clips`: `default`, `pins`, `favorites`, or `pins_favorites`.
+  - `pins`: pinned clips that have been used go first, in recent-use order. "Used" means `use_count >= 1` or `last_used_at > created_at`. An unused pinned clip is ordered like any other clip.
+  - `favorites`: favorites go after the pinned group and before the rest.
+- **Where it lives:** `FetchRankedOpt` in `DatabaseService.SearchOptimized.cs` for the optimized path, and `RecentFirstSearchOrderSql` in `DatabaseService.Search.cs` for the legacy path. Both must stay in step.
+- **Browsing** (no query) is still ordered locally by `sortClipsForBrowsing` in `filters-search.js`.
+- **Known gap:** the typo-tolerant fallback that runs on zero matches still orders by `pinned DESC` first. It does not use the recent-use order yet.
+
 ### FTS5
 `DatabaseService.Fts.cs` creates `fts_clips` as an external-content FTS5 table over `clips` using `porter unicode61` with `prefix='2 3'`, kept in sync by insert/delete/update triggers.
 

@@ -64,6 +64,7 @@ dotnet test DualClip.Tests/DualClip.Tests.csproj
 | Suite | Asserts |
 | :--- | :--- |
 | `SearchScopeTests` | Search scope filtering |
+| `SearchUsageRankingTests` | Default search order (most recently used first), and the pins boost (used pinned clips first) |
 | `SearchTokenizationTests` | FTS5 `porter unicode61` tolerance for `C++`, wildcards, boolean words, paths, punctuation |
 | `TagAndNicknameQueryTests` | `tag:` / `nick:` prefixes resolve against real tables, never degrade to full-text scan |
 | `AutoSortPatternTests` | `MatchUrlPattern` reached **reflectively** (Win32 type, not constructible) |
