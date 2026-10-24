@@ -958,7 +958,7 @@ public class ClipboardListener : IDisposable
             }
 
             // Blocklist check (supports double-copy override)
-            if (IsBlocklisted(proc, text != null ? text.GetHashCode(StringComparison.Ordinal) : 0))
+            if (IsBlocklisted(proc, text.GetHashCode(StringComparison.Ordinal)))
             {
                 return;
             }
