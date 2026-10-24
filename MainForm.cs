@@ -493,6 +493,17 @@ public partial class MainForm : Form
         }
         catch { }
 
+        // Start the WebView2 browser before the slower local setup below (database, tray,
+        // hotkeys), so the browser starts in parallel with it. The page cannot load until this
+        // constructor returns, so the database and other services exist before any UI call.
+        _webView = new WebView2
+        {
+            Dock = DockStyle.Fill,
+            DefaultBackgroundColor = Color.FromArgb(8, 9, 12)
+        };
+        Controls.Add(_webView);
+        InitWebViewAsync();
+
         _db = new DatabaseService();
         _listener = new ClipboardListener(_db);
         _listener.ClipCaptured += OnClipCaptured;
@@ -726,13 +737,6 @@ public partial class MainForm : Form
             System.Windows.Forms.Application.Exit();
         };
 
-        _webView = new WebView2
-        {
-            Dock = DockStyle.Fill,
-            DefaultBackgroundColor = Color.FromArgb(8, 9, 12)
-        };
-        Controls.Add(_webView);
-
         AllowDrop = true;
 
         DragEnter += HandleFormDragEnter;
@@ -789,8 +793,6 @@ public partial class MainForm : Form
             }
         };
         _foregroundTrackerTimer.Start();
-
-        InitWebViewAsync();
 
         if (!startHidden)
         {
