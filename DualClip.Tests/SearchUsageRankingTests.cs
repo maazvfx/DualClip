@@ -9,14 +9,14 @@ public class SearchUsageRankingTests
     private const int OneSecondStep = 1100;
 
     [Fact]
-    public async Task Search_DefaultMode_RanksMostRecentlyUsedClipFirst()
+    public async Task Search_DefaultMode_PastedClipRanksAboveUnpastedClipWithSameMatch()
     {
         using var db = new TestDb();
 
         long unusedId = db.AddText("alpha project script");
         await Task.Delay(OneSecondStep);
 
-        long usedId = db.AddText("some older notes mentioning alpha project");
+        long usedId = db.AddText("alpha project notes");
         db.Service.MarkUsed(usedId, trackStats: true);
 
         var results = await db.Service.GetClipsAsync(
@@ -32,7 +32,7 @@ public class SearchUsageRankingTests
     }
 
     [Fact]
-    public async Task Search_DefaultMode_RecentUseBeatsHigherUseCount()
+    public async Task Search_DefaultMode_HigherPasteCountRanksFirstWhenMatchIsEqual()
     {
         using var db = new TestDb();
 
@@ -54,8 +54,8 @@ public class SearchUsageRankingTests
         );
 
         Assert.True(results.Count >= 2);
-        Assert.Equal(usedOnceId, results[0].Id);
-        Assert.Equal(usedFiveTimesId, results[1].Id);
+        Assert.Equal(usedFiveTimesId, results[0].Id);
+        Assert.Equal(usedOnceId, results[1].Id);
     }
 
     [Fact]

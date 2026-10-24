@@ -190,6 +190,13 @@ public partial class DatabaseService
             EnsureColumn(conn, "use_count", "INTEGER NOT NULL DEFAULT 0");
             EnsureColumn(conn, "custom_title", "TEXT");
             EnsureColumn(conn, "rich_text", "TEXT");
+            EnsureColumn(conn, "last_pasted_at", "INTEGER NOT NULL DEFAULT 0");
+            // One-time backfill: clips pasted before this column existed use last_used_at as their paste time.
+            using (var backfillCmd = conn.CreateCommand())
+            {
+                backfillCmd.CommandText = "UPDATE clips SET last_pasted_at = last_used_at WHERE use_count >= 1 AND last_pasted_at = 0";
+                backfillCmd.ExecuteNonQuery();
+            }
 
             // Phase 1 search upgrade: FTS5 index + triggers. Retrieval untouched.
             EnsureFtsSchema(conn);
@@ -792,7 +799,8 @@ public partial class DatabaseService
                   UPDATE clips
                   SET last_used_at = $t,
                       sort_rank = COALESCE((SELECT MAX(sort_rank) FROM clips), 0) + 1,
-                      use_count = use_count + 1
+                      use_count = use_count + 1,
+                      last_pasted_at = $t
                   WHERE id = $id
                   """
                 : """

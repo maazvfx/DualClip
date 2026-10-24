@@ -180,9 +180,11 @@ public partial class DatabaseService
         public readonly long LastUsedAtUnix;
         public readonly int UseCount;
         public readonly string? CustomTitle;
+        public readonly long LastPastedAtUnix;
 
-        public CandidateProjection(long id, string text, string preview, string nickname, string title, string app, string tags, bool pinned, bool favorite, int sortRank, long createdAtUnix, long lastUsedAtUnix, int useCount, string? customTitle = null)
+        public CandidateProjection(long id, string text, string preview, string nickname, string title, string app, string tags, bool pinned, bool favorite, int sortRank, long createdAtUnix, long lastUsedAtUnix, int useCount, string? customTitle = null, long lastPastedAtUnix = 0)
         {
+            LastPastedAtUnix = lastPastedAtUnix;
             Id = id;
             Text = text;
             Preview = preview;
@@ -198,6 +200,38 @@ public partial class DatabaseService
             UseCount = useCount;
             CustomTitle = customTitle;
         }
+    }
+
+    // Exact text/nickname matches score at or above this value and always rank in the top tier.
+    private const int ExactTierScore = 95;
+    // Total bonus (usage + paste timing + pins/favorites) is capped so it cannot push a
+    // weak text match above a strong one by more than one tier.
+    private const int MaxRankBonus = 25;
+
+    /// <summary>
+    /// Usage bonus, paste-timing bonus, and pin/favorite bonus for search ranking.
+    /// Usage: 5 × log2(1 + pastes), capped at 15. Paste timing: 10 within 15 minutes,
+    /// 7 within 1 hour, 4 within 24 hours (copies do not count). Pins +3 and favorites +2
+    /// apply only when the matching "Prioritize" toggle is on.
+    /// </summary>
+    private static int RankBonus(in CandidateProjection c, bool boostPins, bool boostFavs, long nowUnix)
+    {
+        int usage = c.UseCount <= 0 ? 0 : (int)Math.Min(15, Math.Round(5 * Math.Log2(1 + c.UseCount)));
+
+        int timing = 0;
+        if (c.LastPastedAtUnix > 0)
+        {
+            long age = nowUnix - c.LastPastedAtUnix;
+            if (age <= 15 * 60) timing = 10;
+            else if (age <= 60 * 60) timing = 7;
+            else if (age <= 24 * 60 * 60) timing = 4;
+        }
+
+        int organization = 0;
+        if (boostPins && c.Pinned) organization += 3;
+        if (boostFavs && c.Favorite) organization += 2;
+
+        return Math.Min(MaxRankBonus, usage + timing + organization);
     }
 
     // Relevance tiers (higher = more relevant). Exact matches and prefix matches
@@ -382,7 +416,7 @@ public partial class DatabaseService
         var candidates = new List<(CandidateProjection, int)>();
         using (var cmd = conn.CreateCommand())
         {
-            cmd.CommandText = "SELECT c.id, c.text_content, c.preview, c.nickname, c.src_title, c.src_process, (SELECT GROUP_CONCAT(t.name, ' ') FROM clip_tags ct JOIN tags t ON t.id = ct.tag_id WHERE ct.clip_id = c.id), c.pinned, c.favorite, c.sort_rank, c.created_at, c.use_count, c.custom_title, c.last_used_at FROM clips c WHERE c.id IN (" + string.Join(",", inParams) + ")";
+            cmd.CommandText = "SELECT c.id, c.text_content, c.preview, c.nickname, c.src_title, c.src_process, (SELECT GROUP_CONCAT(t.name, ' ') FROM clip_tags ct JOIN tags t ON t.id = ct.tag_id WHERE ct.clip_id = c.id), c.pinned, c.favorite, c.sort_rank, c.created_at, c.use_count, c.custom_title, c.last_used_at, c.last_pasted_at FROM clips c WHERE c.id IN (" + string.Join(",", inParams) + ")";
             foreach (var pm in parms) cmd.Parameters.Add(pm);
             using var r = cmd.ExecuteReader();
             int scanned = 0;
@@ -403,28 +437,29 @@ public partial class DatabaseService
                 int useCount = r.IsDBNull(11) ? 0 : r.GetInt32(11);
                 string? customTitle = r.IsDBNull(12) ? null : r.GetString(12);
                 long lastUsedAtUnix = r.IsDBNull(13) ? 0 : r.GetInt64(13);
+                long lastPastedAtUnix = r.IsDBNull(14) ? 0 : r.GetInt64(14);
 
-                var proj = new CandidateProjection(id, text, preview, nickname, title, app, tags, pinned, favorite, sortRank, createdAtUnix, lastUsedAtUnix, useCount, customTitle);
+                var proj = new CandidateProjection(id, text, preview, nickname, title, app, tags, pinned, favorite, sortRank, createdAtUnix, lastUsedAtUnix, useCount, customTitle, lastPastedAtUnix);
                 int score = ScoreClipOpt(in proj, qRaw, qRaw, fuzzyIds);
                 if (score > 0) candidates.Add((proj, score));
             }
         }
 
-        // Ranking tuples. Default search ranks by recent use (last used first), then relevance,
-        // sort rank, and creation time. The sort string may include "pins" and/or "favorites"
-        // to boost pinned clips (only once they have been used) and favorited clips.
+        // Default search order: exact matches first, then match score plus a capped bonus for
+        // paste count and recent paste time, then last paste, then sort rank and creation time.
+        // The sort string may include "pins" and/or "favorites" to add the pin/favorite bonus.
         // The explicit newest / oldest / most-used modes keep their own axes.
         bool boostPins = sort.Contains("pins", StringComparison.Ordinal);
         bool boostFavs = sort.Contains("favorites", StringComparison.Ordinal);
+        long nowUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         IEnumerable<(CandidateProjection, int)> ordered = sort switch
         {
             "newest" or "recent" => candidates.OrderByDescending(x => x.Item1.Pinned).ThenByDescending(x => x.Item1.CreatedAtUnix).ThenByDescending(x => x.Item2).ThenByDescending(x => x.Item1.Id),
             "oldest" => candidates.OrderByDescending(x => x.Item1.Pinned).ThenBy(x => x.Item1.CreatedAtUnix).ThenByDescending(x => x.Item2).ThenBy(x => x.Item1.Id),
             "most_used" => candidates.OrderByDescending(x => x.Item1.Pinned).ThenByDescending(x => x.Item1.UseCount).ThenByDescending(x => x.Item1.LastUsedAtUnix).ThenByDescending(x => x.Item2).ThenByDescending(x => x.Item1.Id),
-            _ => candidates.OrderByDescending(x => boostPins && x.Item1.Pinned && (x.Item1.UseCount >= 1 || x.Item1.LastUsedAtUnix > x.Item1.CreatedAtUnix))
-                           .ThenByDescending(x => boostFavs && x.Item1.Favorite)
-                           .ThenByDescending(x => x.Item1.LastUsedAtUnix)
-                           .ThenByDescending(x => x.Item2)
+            _ => candidates.OrderByDescending(x => x.Item2 >= ExactTierScore)
+                           .ThenByDescending(x => x.Item2 + RankBonus(in x.Item1, boostPins, boostFavs, nowUnix))
+                           .ThenByDescending(x => x.Item1.LastPastedAtUnix)
                            .ThenByDescending(x => x.Item1.SortRank)
                            .ThenByDescending(x => x.Item1.CreatedAtUnix)
                            .ThenByDescending(x => x.Item1.Id),
