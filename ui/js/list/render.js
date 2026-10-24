@@ -548,7 +548,10 @@ function bumpClipToTop(clipOrId, fallbackIdx) {
       t.manually_used = true;
       foundClip = t;
       const p = arr.findIndex(c => !c.pinned);
-      if (t.pinned || p === -1) arr.unshift(t);
+      const isSearchActive = (typeof isSearchQueryActive === 'function')
+        ? isSearchQueryActive()
+        : (() => { try { const si = document.getElementById('searchInput'); return !!(si && si.value && si.value.trim()); } catch(e) { return false; } })();
+      if (isSearchActive || t.pinned || p === -1) arr.unshift(t);
       else arr.splice(p, 0, t);
     }
   });
@@ -561,7 +564,10 @@ function bumpClipToTop(clipOrId, fallbackIdx) {
     foundClip.manually_used = true;
   }
 
-  if (typeof sortAllClips === 'function') sortAllClips();
+  const isSearchActiveNow = (typeof isSearchQueryActive === 'function')
+    ? isSearchQueryActive()
+    : (() => { try { const si = document.getElementById('searchInput'); return !!(si && si.value && si.value.trim()); } catch(e) { return false; } })();
+  if (!isSearchActiveNow && typeof sortAllClips === 'function') sortAllClips();
   const newIdx = clips.findIndex(c => c && c.id === clipId);
   selectedIndex = newIdx >= 0 ? newIdx : (typeof fallbackIdx === 'number' ? fallbackIdx : 0);
   selectedIndices.clear();
