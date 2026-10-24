@@ -4,6 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DualClip - Smart Clipboard Manager</title>
+  <style>
+    /* Startup placeholder: shown in the list area until the first clips are drawn.
+       Inline so it is available with the first HTML response. Removed by renderList(). */
+    .dc-startup-skeleton { width: 100%; box-sizing: border-box; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; pointer-events: none; user-select: none; }
+    .dc-sk-row { display: flex; flex-direction: column; gap: 7px; padding: 9px 10px; border-radius: 6px; background: rgba(255, 255, 255, 0.03); }
+    .dc-sk-line { height: 10px; border-radius: 4px; background: linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.04)); background-size: 200% 100%; animation: dc-sk-shimmer 1.4s linear infinite; }
+    .dc-sk-line.short { width: 36%; height: 8px; }
+    .dc-sk-line.mid { width: 58%; }
+    .dc-sk-line.long { width: 78%; }
+    @keyframes dc-sk-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+    @media (prefers-reduced-motion: reduce) { .dc-sk-line { animation: none; } }
+  </style>
   <link rel="stylesheet" href="css/base-variables.css?v=61">
   <link rel="stylesheet" href="css/layout-chrome.css?v=62">
   <link rel="stylesheet" href="css/clip-list.css?v=62">
@@ -330,17 +342,13 @@
         <div id="sidebarNav" class="sidebar-nav-container"></div>
 
         <div class="list-wrapper" id="listContainer">
-          <div class="empty-state">
-            <div class="empty-state-icon-box">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-                <line x1="9" y1="11" x2="15" y2="11"></line>
-                <line x1="9" y1="15" x2="13" y2="15"></line>
-              </svg>
-            </div>
-            <div class="empty-state-title">Clipboard is empty</div>
-            <div class="empty-state-desc">Copy anything with Ctrl+C to get started.</div>
+          <!-- Startup placeholder rows. Shown only until the first real render replaces them. -->
+          <div class="dc-startup-skeleton" id="startupSkeleton" aria-hidden="true">
+            <div class="dc-sk-row"><div class="dc-sk-line long"></div><div class="dc-sk-line short"></div></div>
+            <div class="dc-sk-row"><div class="dc-sk-line mid"></div><div class="dc-sk-line short"></div></div>
+            <div class="dc-sk-row"><div class="dc-sk-line long"></div><div class="dc-sk-line short"></div></div>
+            <div class="dc-sk-row"><div class="dc-sk-line mid"></div><div class="dc-sk-line short"></div></div>
+            <div class="dc-sk-row"><div class="dc-sk-line long"></div><div class="dc-sk-line short"></div></div>
           </div>
         </div>
 
