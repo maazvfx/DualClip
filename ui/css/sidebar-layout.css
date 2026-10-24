@@ -277,3 +277,27 @@ body.theme-light #sidebarNav::-webkit-scrollbar-thumb:hover {
   background: var(--border, rgba(255, 255, 255, 0.06));
   margin: 6px 4px;
 }
+
+/* Cursor rules: the arrow everywhere, the hand only on buttons.
+   Text fields keep the text caret. The idle search box keeps the arrow. */
+*,
+*::before,
+*::after {
+  cursor: default !important;
+}
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+textarea,
+[contenteditable="true"] {
+  cursor: text !important;
+}
+#searchInput:not(:focus):not(.typing) {
+  cursor: default !important;
+}
+button,
+button *,
+[role="button"],
+[role="button"] *,
+[class*="btn-"],
+[class*="btn-"] * {
+  cursor: pointer !important;
+}

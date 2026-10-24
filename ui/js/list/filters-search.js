@@ -1047,8 +1047,25 @@ function clearSearch() {
   expandedIndex = -1;
   applyFilters();
   if (typeof loadClipsFromBackend === 'function') {
-    loadClipsFromBackend('');
+    // applyFilters() re-syncs the selection from the old search results, so the top row
+    // is selected only after the normal list has loaded.
+    Promise.resolve(loadClipsFromBackend('')).then(selectTopRowAfterSearchClear);
   }
+}
+
+function selectTopRowAfterSearchClear() {
+  const searchInput = document.getElementById('searchInput');
+  // If the user has already typed a new query, leave the selection to that search.
+  if (searchInput && searchInput.value.trim()) return;
+  if (!Array.isArray(clips) || clips.length === 0) return;
+  selectedIndex = 0;
+  lastAnchorIndex = 0;
+  selectedIndices.clear();
+  selectedIndices.add(0);
+  selectedIds.clear();
+  if (clips[0] && clips[0].id != null) selectedIds.add(clips[0].id);
+  if (typeof renderList === 'function') renderList();
+  if (typeof syncLivePreview === 'function') syncLivePreview();
 }
 
 function getFormatTag(text) {
