@@ -211,7 +211,7 @@ function loadClipsFromBackend(query = null) {
     currentSearchQuery = queryStr;
   }
   const sortOrder = queryStr
-    ? (typeof searchSortMode !== 'undefined' ? searchSortMode : 'default')
+    ? (typeof buildSearchSortOrder === 'function' ? buildSearchSortOrder() : 'default')
     : ((typeof currentCollection !== 'undefined' && currentCollection !== 'all')
         ? (localStorage.getItem('dualclip_collection_sort_order') || 'newest')
         : 'default');
@@ -284,6 +284,10 @@ function loadClipsFromBackend(query = null) {
       // (Guarded by Frontend_Preserves_Backend_Search_Order.)
       window._lastBackendQuery = String(queryStr || '').toLowerCase();
       if (!queryStr && typeof sortAllClips === 'function') sortAllClips();
+      if (queryStr) {
+        const lc = document.getElementById('listContainer');
+        if (lc) lc.scrollTop = 0;
+      }
       if (typeof __dcMark === 'function') { try { __dcMark('sorted'); } catch (e) {} }
       if (typeof applyFilters === 'function') {
         var __dcAfT0 = (typeof __dcT0 === 'function') ? __dcT0() : Date.now();
@@ -349,7 +353,7 @@ function loadNextClipPage() {
   const liveInputVal = inputEl ? inputEl.value.trim() : '';
   const queryStr = (typeof currentSearchQuery === 'string' && currentSearchQuery) ? currentSearchQuery : liveInputVal;
   const sortOrder = queryStr
-    ? (typeof searchSortMode !== 'undefined' ? searchSortMode : 'default')
+    ? (typeof buildSearchSortOrder === 'function' ? buildSearchSortOrder() : 'default')
     : ((typeof currentCollection !== 'undefined' && currentCollection !== 'all')
         ? (localStorage.getItem('dualclip_collection_sort_order') || 'newest')
         : 'default');

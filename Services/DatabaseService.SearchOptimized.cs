@@ -177,10 +177,11 @@ public partial class DatabaseService
         public readonly bool Favorite;
         public readonly int SortRank;
         public readonly long CreatedAtUnix;
+        public readonly long LastUsedAtUnix;
         public readonly int UseCount;
         public readonly string? CustomTitle;
 
-        public CandidateProjection(long id, string text, string preview, string nickname, string title, string app, string tags, bool pinned, bool favorite, int sortRank, long createdAtUnix, int useCount, string? customTitle = null)
+        public CandidateProjection(long id, string text, string preview, string nickname, string title, string app, string tags, bool pinned, bool favorite, int sortRank, long createdAtUnix, long lastUsedAtUnix, int useCount, string? customTitle = null)
         {
             Id = id;
             Text = text;
@@ -193,6 +194,7 @@ public partial class DatabaseService
             Favorite = favorite;
             SortRank = sortRank;
             CreatedAtUnix = createdAtUnix;
+            LastUsedAtUnix = lastUsedAtUnix;
             UseCount = useCount;
             CustomTitle = customTitle;
         }
@@ -380,7 +382,7 @@ public partial class DatabaseService
         var candidates = new List<(CandidateProjection, int)>();
         using (var cmd = conn.CreateCommand())
         {
-            cmd.CommandText = "SELECT c.id, c.text_content, c.preview, c.nickname, c.src_title, c.src_process, (SELECT GROUP_CONCAT(t.name, ' ') FROM clip_tags ct JOIN tags t ON t.id = ct.tag_id WHERE ct.clip_id = c.id), c.pinned, c.favorite, c.sort_rank, c.created_at, c.use_count, c.custom_title FROM clips c WHERE c.id IN (" + string.Join(",", inParams) + ")";
+            cmd.CommandText = "SELECT c.id, c.text_content, c.preview, c.nickname, c.src_title, c.src_process, (SELECT GROUP_CONCAT(t.name, ' ') FROM clip_tags ct JOIN tags t ON t.id = ct.tag_id WHERE ct.clip_id = c.id), c.pinned, c.favorite, c.sort_rank, c.created_at, c.use_count, c.custom_title, c.last_used_at FROM clips c WHERE c.id IN (" + string.Join(",", inParams) + ")";
             foreach (var pm in parms) cmd.Parameters.Add(pm);
             using var r = cmd.ExecuteReader();
             int scanned = 0;
@@ -400,24 +402,32 @@ public partial class DatabaseService
                 long createdAtUnix = r.IsDBNull(10) ? 0 : r.GetInt64(10);
                 int useCount = r.IsDBNull(11) ? 0 : r.GetInt32(11);
                 string? customTitle = r.IsDBNull(12) ? null : r.GetString(12);
+                long lastUsedAtUnix = r.IsDBNull(13) ? 0 : r.GetInt64(13);
 
-                var proj = new CandidateProjection(id, text, preview, nickname, title, app, tags, pinned, favorite, sortRank, createdAtUnix, useCount, customTitle);
+                var proj = new CandidateProjection(id, text, preview, nickname, title, app, tags, pinned, favorite, sortRank, createdAtUnix, lastUsedAtUnix, useCount, customTitle);
                 int score = ScoreClipOpt(in proj, qRaw, qRaw, fuzzyIds);
                 if (score > 0) candidates.Add((proj, score));
             }
         }
 
-        // Ranking tuples. "Best Match" (default) leads with the relevance Score so
-        // exact/prefix hits sit at the top. The explicit "Most Recent" / newest /
-        // oldest / most-used modes lead with the chosen axis among matched clips
-        // (pinned still floats first), so picking "Most Recent" genuinely surfaces
-        // the newest matching clip rather than the highest-scored one.
+        // Ranking tuples. Default search ranks by recent use (last used first), then relevance,
+        // sort rank, and creation time. The sort string may include "pins" and/or "favorites"
+        // to boost pinned clips (only once they have been used) and favorited clips.
+        // The explicit newest / oldest / most-used modes keep their own axes.
+        bool boostPins = sort.Contains("pins", StringComparison.Ordinal);
+        bool boostFavs = sort.Contains("favorites", StringComparison.Ordinal);
         IEnumerable<(CandidateProjection, int)> ordered = sort switch
         {
             "newest" or "recent" => candidates.OrderByDescending(x => x.Item1.Pinned).ThenByDescending(x => x.Item1.CreatedAtUnix).ThenByDescending(x => x.Item2).ThenByDescending(x => x.Item1.Id),
             "oldest" => candidates.OrderByDescending(x => x.Item1.Pinned).ThenBy(x => x.Item1.CreatedAtUnix).ThenByDescending(x => x.Item2).ThenBy(x => x.Item1.Id),
-            "most_used" => candidates.OrderByDescending(x => x.Item1.Pinned).ThenByDescending(x => x.Item1.UseCount).ThenByDescending(x => x.Item2).ThenByDescending(x => x.Item1.Id),
-            _ => candidates.OrderByDescending(x => x.Item2).ThenByDescending(x => x.Item1.Pinned).ThenByDescending(x => x.Item1.SortRank).ThenByDescending(x => x.Item1.CreatedAtUnix).ThenByDescending(x => x.Item1.Id),
+            "most_used" => candidates.OrderByDescending(x => x.Item1.Pinned).ThenByDescending(x => x.Item1.UseCount).ThenByDescending(x => x.Item1.LastUsedAtUnix).ThenByDescending(x => x.Item2).ThenByDescending(x => x.Item1.Id),
+            _ => candidates.OrderByDescending(x => boostPins && x.Item1.Pinned && (x.Item1.UseCount >= 1 || x.Item1.LastUsedAtUnix > x.Item1.CreatedAtUnix))
+                           .ThenByDescending(x => boostFavs && x.Item1.Favorite)
+                           .ThenByDescending(x => x.Item1.LastUsedAtUnix)
+                           .ThenByDescending(x => x.Item2)
+                           .ThenByDescending(x => x.Item1.SortRank)
+                           .ThenByDescending(x => x.Item1.CreatedAtUnix)
+                           .ThenByDescending(x => x.Item1.Id),
         };
 
         var pageIds = ordered.Skip(off).Take(Math.Clamp(lim, 1, SearchConstants.MaxClampedLimit)).Select(x => x.Item1.Id).ToList();

@@ -92,6 +92,21 @@ public partial class DatabaseService
             filterType, filterApp, filterTime, sort, fuzzyEnabled, ct), ct);
     }
 
+    // Search order: recent use first. "pins" in the sort string puts pinned clips that have
+    // been used (last_used_at moved past created_at) first; "favorites" puts favorites first.
+    private static string RecentFirstSearchOrderSql(string sort)
+    {
+        var parts = new List<string>();
+        if (sort.Contains("pins", StringComparison.Ordinal))
+            parts.Add("(c.pinned = 1 AND (c.use_count >= 1 OR c.last_used_at > c.created_at)) DESC");
+        if (sort.Contains("favorites", StringComparison.Ordinal))
+            parts.Add("c.favorite DESC");
+        parts.Add("c.last_used_at DESC");
+        parts.Add("c.sort_rank DESC");
+        parts.Add("c.id DESC");
+        return string.Join(", ", parts);
+    }
+
     public List<ClipItem> GetClipsLegacy(
         string track = "all",
         string search = "",
@@ -262,7 +277,9 @@ public partial class DatabaseService
                 "most_used" => "c.use_count DESC, c.pinned DESC, c.sort_rank DESC, c.id DESC",
                 _ => collection == "most_used"
                     ? "c.use_count DESC, c.pinned DESC, c.sort_rank DESC, c.id DESC"
-                    : "c.pinned DESC, c.sort_rank DESC, c.id DESC",
+                    : (hasSearch
+                        ? RecentFirstSearchOrderSql(sort)
+                        : "c.pinned DESC, c.sort_rank DESC, c.id DESC"),
             };
 
             var whereSql = where.Count > 0 ? "WHERE " + string.Join(" AND ", where) : "";

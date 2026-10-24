@@ -66,7 +66,7 @@ function updateFilterBtnState() {
     const appActive = (typeof activeFilterApp !== 'undefined' && activeFilterApp !== 'all');
     const timeActive = (typeof activeFilterTime !== 'undefined' && activeFilterTime !== 'any');
     const favActive = (typeof searchBoostFavorites !== 'undefined' && !!searchBoostFavorites);
-    const recentActive = (typeof searchSortMode !== 'undefined' && searchSortMode === 'recent');
+    const pinsActive = (typeof searchBoostPins !== 'undefined' && !!searchBoostPins);
     const fuzzyActive = (typeof isFuzzySearchEnabled !== 'undefined' && !!isFuzzySearchEnabled);
 
     const searchInput = document.getElementById('searchInput');
@@ -77,7 +77,7 @@ function updateFilterBtnState() {
       tagActive = !!(parsed && ((parsed.opTags && parsed.opTags.length) || parsed.opNick));
     }
 
-    const isFiltered = typeActive || appActive || timeActive || favActive || recentActive || fuzzyActive || tagActive;
+    const isFiltered = typeActive || appActive || timeActive || favActive || pinsActive || fuzzyActive || tagActive;
     btn.classList.toggle('filter-active', isFiltered);
     btn.classList.toggle('has-active-filters', isFiltered);
   } catch (e) {}
@@ -131,7 +131,7 @@ function setFilterTime(time, el) {
   }
 }
 
-let searchSortMode = 'relevance';
+let searchBoostPins = false;
 let searchBoostFavorites = false;
 let isFuzzySearchEnabled = typeof getSetting === 'function' ? getSetting('dualclip_fuzzy_search') : (localStorage.getItem('dualclip_fuzzy_search') === '1');
 (function syncFuzzyChipState() {
@@ -145,32 +145,34 @@ try {
   if (optFuzzy) optFuzzy.classList.toggle('selected', isFuzzySearchEnabled);
 } catch(e) {}
 
-function toggleRecentSort(el) {
-  searchSortMode = (searchSortMode === 'recent') ? 'relevance' : 'recent';
-  const recentOpt = el || document.getElementById('optSortRecent');
-  if (recentOpt) {
-    recentOpt.classList.toggle('selected', searchSortMode === 'recent');
-  }
-  updateFilterBtnState();
-  if (typeof currentSearchQuery === 'string' && currentSearchQuery.trim().length > 0 && typeof loadClipsFromBackend === 'function') {
-    loadClipsFromBackend(currentSearchQuery);
+// Search order is owned by the backend (get_clips sort string). Search always ranks by
+// recent use; the pin and favorite boosts are sent as part of the sort string.
+function buildSearchSortOrder() {
+  const parts = [];
+  if (searchBoostPins) parts.push('pins');
+  if (searchBoostFavorites) parts.push('favorites');
+  return parts.length ? parts.join('_') : 'default';
+}
+
+// Boost toggles change search order on the backend, so re-fetch when a query is active.
+function reloadSearchOrFilters() {
+  const searchInput = document.getElementById('searchInput');
+  const val = searchInput ? searchInput.value.trim() : '';
+  if (val && typeof loadClipsFromBackend === 'function') {
+    const parsed = parseSearchQuery(val);
+    loadClipsFromBackend(parsed.cleanQuery || '');
   } else if (typeof applyFilters === 'function') {
     applyFilters();
   }
 }
 
-function setSearchSortMode(mode, el) {
-  searchSortMode = mode;
-  const recentOpt = el || document.getElementById('optSortRecent');
-  if (recentOpt) {
-    recentOpt.classList.toggle('selected', mode === 'recent');
+function togglePinsBoost(el) {
+  searchBoostPins = !searchBoostPins;
+  if (el) {
+    el.classList.toggle('selected', searchBoostPins);
   }
   updateFilterBtnState();
-  if (typeof currentSearchQuery === 'string' && currentSearchQuery.trim().length > 0 && typeof loadClipsFromBackend === 'function') {
-    loadClipsFromBackend(currentSearchQuery);
-  } else if (typeof applyFilters === 'function') {
-    applyFilters();
-  }
+  reloadSearchOrFilters();
 }
 
 function toggleFavoritesBoost(el) {
@@ -179,7 +181,11 @@ function toggleFavoritesBoost(el) {
     el.classList.toggle('selected', searchBoostFavorites);
   }
   updateFilterBtnState();
-  if (typeof applyFilters === 'function') applyFilters();
+  // Search order comes from the backend, so re-fetch when searching. Browsing order is local.
+  const searchInput = document.getElementById('searchInput');
+  const hasQuery = !!(searchInput && searchInput.value.trim());
+  if (hasQuery) reloadSearchOrFilters();
+  else if (typeof applyFilters === 'function') applyFilters();
 }
 
 function toggleFuzzySearch(el) {
@@ -477,7 +483,7 @@ function resetAllFilters() {
   activeFilterType = 'all';
   activeFilterApp = 'all';
   activeFilterTime = 'any';
-  searchSortMode = 'relevance';
+  searchBoostPins = false;
   searchBoostFavorites = false;
   isFuzzySearchEnabled = false;
   try {
@@ -808,7 +814,7 @@ function applyFilters() {
   let mirrorInAll = true;
   try { mirrorInAll = localStorage.getItem('dualclip_mirror_in_all') !== '0'; } catch (_) {}
 
-  clips = allClips.filter(c => {
+  const filtered = allClips.filter(c => {
     // Collection scope always applies — even while searching (prevents global leak when pill says Favorites/Work)
     if ((currentCollection === 'pins' || currentCollection === 'favorites') && !c.favorite) return false;
     if (currentCollection === 'most_used') {
@@ -884,40 +890,18 @@ function applyFilters() {
     return true;
   });
 
+  const isBackendStale = !!q && String(window._lastBackendQuery || '').toLowerCase() !== q;
+  if (isBackendStale && filtered.length === 0 && Array.isArray(clips) && clips.length > 0) {
+    // Backend search for `q` is pending/debouncing and local memory has 0 matches.
+    // Retain existing clips to prevent premature flicker to blank / "No clips found".
+  } else {
+    clips = filtered;
+  }
+
+  // Search results keep the backend order (recent use, plus the pin/favorite boosts).
+  // Only browsing (no query) is sorted locally.
   if (!q) {
     sortClipsForBrowsing();
-  } else {
-    // F1: Wire searchSortMode ('relevance' vs 'recent') and searchBoostFavorites
-    clips.sort((a, b) => {
-      // Pinned items stay at top
-      const pDiff = (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
-      if (pDiff !== 0) return pDiff;
-
-      // Boost favorites if enabled
-      if (searchBoostFavorites) {
-        const fDiff = (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0);
-        if (fDiff !== 0) return fDiff;
-      }
-
-      if (searchSortMode === 'recent') {
-        const timeA = typeof a.last_used_at === 'number' ? a.last_used_at : (Date.parse(a.last_used_at) || 0);
-        const timeB = typeof b.last_used_at === 'number' ? b.last_used_at : (Date.parse(b.last_used_at) || 0);
-        if (timeB !== timeA) return timeB - timeA;
-        return (b.sort_rank || 0) - (a.sort_rank || 0) || (b.id || 0) - (a.id || 0);
-      }
-
-      // Default 'relevance': exact prefix/exact title match first, then recency
-      const aTitle = (a.title || a.text_content || a.preview || '').toLowerCase();
-      const bTitle = (b.title || b.text_content || b.preview || '').toLowerCase();
-      const aStarts = aTitle.startsWith(q) ? 1 : 0;
-      const bStarts = bTitle.startsWith(q) ? 1 : 0;
-      if (bStarts !== aStarts) return bStarts - aStarts;
-
-      const timeA = typeof a.last_used_at === 'number' ? a.last_used_at : (Date.parse(a.last_used_at) || 0);
-      const timeB = typeof b.last_used_at === 'number' ? b.last_used_at : (Date.parse(b.last_used_at) || 0);
-      if (timeB !== timeA) return timeB - timeA;
-      return (b.sort_rank || 0) - (a.sort_rank || 0) || (b.id || 0) - (a.id || 0);
-    });
   }
 
   renderActivePills();
@@ -926,21 +910,12 @@ function applyFilters() {
   const isSearching = !!rawInput;
   if (isSearching) {
     if (clips.length > 0) {
-      const currentSelectedId = selectedIds.size === 1 ? Array.from(selectedIds)[0] : null;
-      const matchedIdx = currentSelectedId != null ? clips.findIndex(c => c && c.id === currentSelectedId) : -1;
-      if (matchedIdx >= 0) {
-        selectedIndex = matchedIdx;
-        selectedIndices.clear();
-        selectedIndices.add(matchedIdx);
-        lastAnchorIndex = matchedIdx;
-      } else {
-        selectedIndex = 0;
-        selectedIndices.clear();
-        selectedIndices.add(0);
-        lastAnchorIndex = 0;
-        selectedIds.clear();
-        if (clips[0] && clips[0].id != null) selectedIds.add(clips[0].id);
-      }
+      selectedIndex = 0;
+      selectedIndices.clear();
+      selectedIndices.add(0);
+      lastAnchorIndex = 0;
+      selectedIds.clear();
+      if (clips[0] && clips[0].id != null) selectedIds.add(clips[0].id);
     } else {
       selectedIndex = -1;
       selectedIndices.clear();
@@ -1183,7 +1158,7 @@ if (searchInputEl) {
         const parsed = parseSearchQuery(val);
         loadClipsFromBackend(parsed.cleanQuery || '');
       }
-    }, 280);
+    }, 50);
 
     // Recent-search capture is deliberately stricter than the live search debounce:
     //  - 2000ms of no typing, so a half-typed word is not remembered
@@ -1282,8 +1257,7 @@ if (searchInputEl) {
 
 
 // Global & Namespace Exposure for Filters & Search
-window.toggleRecentSort = toggleRecentSort;
-window.setSearchSortMode = setSearchSortMode;
+window.togglePinsBoost = togglePinsBoost;
 window.toggleFavoritesBoost = toggleFavoritesBoost;
 window.toggleFuzzySearch = toggleFuzzySearch;
 window.toggleFilterDropdown = toggleFilterDropdown;
@@ -1367,8 +1341,7 @@ window.DC.filtersSearch = {
   closeRecentSearchesDropdown,
   toggleRecentSearchesDropdown,
   updateFilterBtnState,
-  toggleRecentSort,
-  setSearchSortMode,
+  togglePinsBoost,
   toggleFavoritesBoost,
   toggleFuzzySearch
 };
