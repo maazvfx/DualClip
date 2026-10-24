@@ -83,7 +83,7 @@ public class SearchUsageRankingTests
     }
 
     [Fact]
-    public async Task Search_PinsBoost_UsedPinnedClipRanksFirst()
+    public async Task Search_PinsToggle_PinnedClipRanksSecondWhenTopSlotIsTaken()
     {
         using var db = new TestDb();
 
@@ -104,6 +104,8 @@ public class SearchUsageRankingTests
         );
         Assert.Equal(otherId, defaultResults[0].Id);
 
+        // The top slot still goes to the most-used/recent clip. The pins toggle only
+        // reorders the clips below it, so the pinned clip lands second.
         var pinsResults = await db.Service.GetClipsAsync(
             track: "all",
             search: "gamma",
@@ -111,8 +113,8 @@ public class SearchUsageRankingTests
             offset: 0,
             sort: "pins"
         );
-        Assert.Equal(pinnedId, pinsResults[0].Id);
-        Assert.Equal(otherId, pinsResults[1].Id);
+        Assert.Equal(otherId, pinsResults[0].Id);
+        Assert.Equal(pinnedId, pinsResults[1].Id);
     }
 
     [Fact]
@@ -134,5 +136,41 @@ public class SearchUsageRankingTests
         Assert.True(results.Count >= 2);
         Assert.Equal(exactStartId, results[0].Id);
         Assert.Equal(substringId, results[1].Id);
+    }
+
+    [Fact]
+    public async Task Search_TopSlotBonusExpiresAfter24Hours()
+    {
+        using var db = new TestDb();
+
+        // Weaker match (whole-word hit, score 35) that was pasted often, but two days ago.
+        long oldPasteId = db.AddText("middle text with epsilon inside");
+        for (int i = 0; i < 7; i++)
+        {
+            db.Service.MarkUsed(oldPasteId, trackStats: true);
+        }
+        using (var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={db.DbPath}"))
+        {
+            conn.Open();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "UPDATE clips SET last_pasted_at = $t WHERE id = $id";
+            cmd.Parameters.AddWithValue("$t", DateTimeOffset.UtcNow.AddDays(-2).ToUnixTimeSeconds());
+            cmd.Parameters.AddWithValue("$id", oldPasteId);
+            cmd.ExecuteNonQuery();
+        }
+
+        // Stronger match (prefix, score 75) that has never been pasted.
+        long strongerId = db.AddText("epsilon start text");
+
+        var results = await db.Service.GetClipsAsync(
+            track: "all",
+            search: "epsilon",
+            limit: 50,
+            offset: 0
+        );
+
+        Assert.True(results.Count >= 2);
+        Assert.Equal(strongerId, results[0].Id);
+        Assert.Equal(oldPasteId, results[1].Id);
     }
 }

@@ -204,34 +204,31 @@ public partial class DatabaseService
 
     // Exact text/nickname matches score at or above this value and always rank in the top tier.
     private const int ExactTierScore = 95;
-    // Total bonus (usage + paste timing + pins/favorites) is capped so it cannot push a
-    // weak text match above a strong one by more than one tier.
-    private const int MaxRankBonus = 25;
+    // Minimum relevance score for a non-exact clip to take the top slot (35 = whole-word match).
+    private const int TopSlotScoreFloor = 35;
 
     /// <summary>
-    /// Usage bonus, paste-timing bonus, and pin/favorite bonus for search ranking.
+    /// Usage plus paste-recency score used only to pick the top-slot clip.
     /// Usage: 5 × log2(1 + pastes), capped at 15. Paste timing: 10 within 15 minutes,
-    /// 7 within 1 hour, 4 within 24 hours (copies do not count). Pins +3 and favorites +2
-    /// apply only when the matching "Prioritize" toggle is on.
+    /// 7 within 1 hour, 4 within 24 hours. Copies do not count, only pastes.
+    /// Anything pasted more than 24 hours ago, or never, gets 0. Maximum is 25.
     /// </summary>
-    private static int RankBonus(in CandidateProjection c, bool boostPins, bool boostFavs, long nowUnix)
+    private static int UsageRecencyBonus(in CandidateProjection c, long nowUnix)
     {
+        // The bonus expires completely after 24 hours. A clip never pasted, or last pasted
+        // more than 24 hours ago, gets no bonus and cannot take the top slot.
+        if (c.LastPastedAtUnix <= 0) return 0;
+        long age = nowUnix - c.LastPastedAtUnix;
+        if (age > 24 * 60 * 60) return 0;
+
         int usage = c.UseCount <= 0 ? 0 : (int)Math.Min(15, Math.Round(5 * Math.Log2(1 + c.UseCount)));
 
-        int timing = 0;
-        if (c.LastPastedAtUnix > 0)
-        {
-            long age = nowUnix - c.LastPastedAtUnix;
-            if (age <= 15 * 60) timing = 10;
-            else if (age <= 60 * 60) timing = 7;
-            else if (age <= 24 * 60 * 60) timing = 4;
-        }
+        int timing;
+        if (age <= 15 * 60) timing = 10;
+        else if (age <= 60 * 60) timing = 7;
+        else timing = 4;
 
-        int organization = 0;
-        if (boostPins && c.Pinned) organization += 3;
-        if (boostFavs && c.Favorite) organization += 2;
-
-        return Math.Min(MaxRankBonus, usage + timing + organization);
+        return usage + timing;
     }
 
     // Relevance tiers (higher = more relevant). Exact matches and prefix matches
@@ -445,20 +442,36 @@ public partial class DatabaseService
             }
         }
 
-        // Default search order: exact matches first, then match score plus a capped bonus for
-        // paste count and recent paste time, then last paste, then sort rank and creation time.
-        // The sort string may include "pins" and/or "favorites" to add the pin/favorite bonus.
+        // Default search order:
+        //   1. Exact matches (score >= 95), by score.
+        //   2. Top slot: one clip with the best usage + paste-recency bonus, if it has a
+        //      relevance score of at least 35. Only pasted clips can win this slot.
+        //   3. Everything else: strict relevance order, then the "Prioritize Pins" and
+        //      "Prioritize Favorites" toggles (when on), then last paste, sort rank, and creation time.
         // The explicit newest / oldest / most-used modes keep their own axes.
         bool boostPins = sort.Contains("pins", StringComparison.Ordinal);
         bool boostFavs = sort.Contains("favorites", StringComparison.Ordinal);
         long nowUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        long? topSlotId = candidates
+            .Where(x => x.Item2 < ExactTierScore && x.Item2 >= TopSlotScoreFloor)
+            .Select(x => (x.Item1, Score: x.Item2, Bonus: UsageRecencyBonus(in x.Item1, nowUnix)))
+            .Where(t => t.Bonus > 0)
+            .OrderByDescending(t => t.Bonus)
+            .ThenByDescending(t => t.Score)
+            .ThenByDescending(t => t.Item1.LastPastedAtUnix)
+            .ThenByDescending(t => t.Item1.SortRank)
+            .Select(t => (long?)t.Item1.Id)
+            .FirstOrDefault();
         IEnumerable<(CandidateProjection, int)> ordered = sort switch
         {
             "newest" or "recent" => candidates.OrderByDescending(x => x.Item1.Pinned).ThenByDescending(x => x.Item1.CreatedAtUnix).ThenByDescending(x => x.Item2).ThenByDescending(x => x.Item1.Id),
             "oldest" => candidates.OrderByDescending(x => x.Item1.Pinned).ThenBy(x => x.Item1.CreatedAtUnix).ThenByDescending(x => x.Item2).ThenBy(x => x.Item1.Id),
             "most_used" => candidates.OrderByDescending(x => x.Item1.Pinned).ThenByDescending(x => x.Item1.UseCount).ThenByDescending(x => x.Item1.LastUsedAtUnix).ThenByDescending(x => x.Item2).ThenByDescending(x => x.Item1.Id),
             _ => candidates.OrderByDescending(x => x.Item2 >= ExactTierScore)
-                           .ThenByDescending(x => x.Item2 + RankBonus(in x.Item1, boostPins, boostFavs, nowUnix))
+                           .ThenByDescending(x => topSlotId.HasValue && x.Item1.Id == topSlotId.Value)
+                           .ThenByDescending(x => x.Item2)
+                           .ThenByDescending(x => boostPins && x.Item1.Pinned)
+                           .ThenByDescending(x => boostFavs && x.Item1.Favorite)
                            .ThenByDescending(x => x.Item1.LastPastedAtUnix)
                            .ThenByDescending(x => x.Item1.SortRank)
                            .ThenByDescending(x => x.Item1.CreatedAtUnix)
