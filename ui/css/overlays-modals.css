@@ -391,9 +391,9 @@
     #mainView.zoomed-125 {
       zoom: 1.25;
     }
-    /* Settings view styling (110% zoom, History panel untouched) */
+    /* Settings view styling: natural 1.0x High-DPI scaling */
     #settingsView {
-      zoom: 1.1;
+      zoom: 1;
     }
     #settingsView .notion-setting-row:not(#autoSortInputBar *) .st-select:not(.rule-collection-select),
     #settingsView .notion-setting-row:not(#autoSortInputBar *) .custom-select-wrap .custom-select-btn {

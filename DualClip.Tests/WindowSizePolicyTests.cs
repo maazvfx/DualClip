@@ -22,6 +22,7 @@ namespace DualClip.Tests;
 public class WindowSizePolicyTests
 {
     private static readonly Rectangle FullHd = new(0, 0, 1920, 1040); // taskbar excluded
+    private static readonly Rectangle QuadHd = new(0, 0, 2560, 1400); // 1440p taskbar excluded
     private const int MinW = 300;
     private const int MinH = 240;
 
@@ -168,5 +169,93 @@ public class WindowSizePolicyTests
             lastWindowWidth: 1150, lastWindowHeight: 820,
             workingArea: FullHd, minWidth: MinW, minHeight: MinH);
         Assert.Equal((1150, 820), (w, h));
+    }
+
+    [Fact]
+    [Trait("Category", "Core")]
+    public void ToPhysicalPixels_ScalesAccurately()
+    {
+        Assert.Equal(970, WindowSizePolicy.ToPhysicalPixels(970, 1.0f));
+        Assert.Equal(1213, WindowSizePolicy.ToPhysicalPixels(970, 1.25f));
+        Assert.Equal(1455, WindowSizePolicy.ToPhysicalPixels(970, 1.50f));
+        Assert.Equal(1698, WindowSizePolicy.ToPhysicalPixels(970, 1.75f));
+        Assert.Equal(1940, WindowSizePolicy.ToPhysicalPixels(970, 2.0f));
+
+        Assert.Equal(360, WindowSizePolicy.ToPhysicalPixels(360, 1.0f));
+        Assert.Equal(450, WindowSizePolicy.ToPhysicalPixels(360, 1.25f));
+        Assert.Equal(540, WindowSizePolicy.ToPhysicalPixels(360, 1.50f));
+        Assert.Equal(630, WindowSizePolicy.ToPhysicalPixels(360, 1.75f));
+        Assert.Equal(720, WindowSizePolicy.ToPhysicalPixels(360, 2.0f));
+    }
+
+    [Fact]
+    [Trait("Category", "Core")]
+    public void ToLogicalPixels_ConvertsBackAccurately()
+    {
+        Assert.Equal(970, WindowSizePolicy.ToLogicalPixels(1455, 1.5f));
+        Assert.Equal(360, WindowSizePolicy.ToLogicalPixels(540, 1.5f));
+        Assert.Equal(970, WindowSizePolicy.ToLogicalPixels(1940, 2.0f));
+    }
+
+    [Fact]
+    [Trait("Category", "Core")]
+    public void ResetSizeFor_WithDpiScale_ScalesProperly()
+    {
+        // 100% scale
+        Assert.Equal((360, 260), WindowSizePolicy.ResetSizeFor("compact", 1.0f));
+        Assert.Equal((970, 730), WindowSizePolicy.ResetSizeFor("standard", 1.0f));
+
+        // 150% scale
+        Assert.Equal((540, 390), WindowSizePolicy.ResetSizeFor("compact", 1.5f));
+        Assert.Equal((1455, 1095), WindowSizePolicy.ResetSizeFor("standard", 1.5f));
+
+        // 200% scale
+        Assert.Equal((720, 520), WindowSizePolicy.ResetSizeFor("compact", 2.0f));
+        Assert.Equal((1940, 1460), WindowSizePolicy.ResetSizeFor("standard", 2.0f));
+    }
+
+    [Fact]
+    [Trait("Category", "Core")]
+    public void LayoutAware_StandardBasePreset_At150Dpi_ScalesBaseTo1455x1095()
+    {
+        // Uncustomized standard base preset (970x730 in settings) at 150% scaling
+        var (w, h) = WindowSizePolicy.Resolve(
+            layoutPreset: "standard",
+            standardWidth: 970, standardHeight: 730,
+            compactWidth: 360, compactHeight: 260,
+            lastWindowWidth: 0, lastWindowHeight: 0,
+            workingArea: QuadHd, minWidth: MinW, minHeight: MinH,
+            dpiScale: 1.5f);
+        Assert.Equal((1455, 1095), (w, h));
+    }
+
+    [Fact]
+    [Trait("Category", "Core")]
+    public void LayoutAware_CompactBasePreset_At150Dpi_ScalesBaseTo540x390()
+    {
+        // Uncustomized compact base preset (360x260 in settings) at 150% scaling
+        var (w, h) = WindowSizePolicy.Resolve(
+            layoutPreset: "compact",
+            standardWidth: 970, standardHeight: 730,
+            compactWidth: 360, compactHeight: 260,
+            lastWindowWidth: 360, lastWindowHeight: 260,
+            workingArea: QuadHd, minWidth: MinW, minHeight: MinH,
+            dpiScale: 1.5f);
+        Assert.Equal((540, 390), (w, h));
+    }
+
+    [Fact]
+    [Trait("Category", "Core")]
+    public void LayoutAware_StandardBasePreset_At150Dpi_ClampsToSmallWorkingArea()
+    {
+        // 1455x1095 base preset at 150% on a 1080p display (working area height ~1040)
+        var (w, h) = WindowSizePolicy.Resolve(
+            layoutPreset: "standard",
+            standardWidth: 970, standardHeight: 730,
+            compactWidth: 360, compactHeight: 260,
+            lastWindowWidth: 0, lastWindowHeight: 0,
+            workingArea: FullHd, minWidth: MinW, minHeight: MinH,
+            dpiScale: 1.5f);
+        Assert.Equal((1455, 1040), (w, h));
     }
 }

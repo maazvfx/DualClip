@@ -1462,12 +1462,17 @@ public partial class MainForm
                         // not overwrite the remembered History size. Defaults to true so every
                         // existing caller keeps its current behaviour.
                         bool persist = !(args.GetArrayLength() > 3 && TryGetBool(args[3], out bool persistFlag) && !persistFlag);
-                var curScreen = Screen.FromControl(this).WorkingArea;
-                // Leave room for the taskbar: sizing to the full monitor would push the
-                // bottom edge under it, which is what WorkingArea exists to prevent.
-                int maxW = Math.Max(MIN_WINDOW_WIDTH, curScreen.Width - WindowPlacement.EdgeMargin * 2);
-                int maxH = Math.Max(MIN_WINDOW_HEIGHT, curScreen.Height - WindowPlacement.EdgeMargin * 2);
-                        var targetSize = new Size(Math.Clamp(w, MIN_WINDOW_WIDTH, maxW), Math.Clamp(h, MIN_WINDOW_HEIGHT, maxH));
+                        var curScreen = Screen.FromControl(this).WorkingArea;
+                        float dpiScale = GetCurrentDpiScale();
+                        int physW = (int)Math.Round(w * dpiScale);
+                        int physH = (int)Math.Round(h * dpiScale);
+                        int minPhysW = (int)Math.Round(MIN_WINDOW_WIDTH * dpiScale);
+                        int minPhysH = (int)Math.Round(MIN_WINDOW_HEIGHT * dpiScale);
+                        // Leave room for the taskbar: sizing to the full monitor would push the
+                        // bottom edge under it, which is what WorkingArea exists to prevent.
+                        int maxW = Math.Max(minPhysW, curScreen.Width - WindowPlacement.EdgeMargin * 2);
+                        int maxH = Math.Max(minPhysH, curScreen.Height - WindowPlacement.EdgeMargin * 2);
+                        var targetSize = new Size(Math.Clamp(physW, minPhysW, maxW), Math.Clamp(physH, minPhysH, maxH));
                         _transientSize = !persist;
                         _transientSizeValue = persist ? Size.Empty : targetSize;
                         if (animate)
@@ -1548,28 +1553,43 @@ public partial class MainForm
                         resetLayout = args[0].GetString();
                     }
                     var sReset = AppSettings.Load();
+                    float resetDpiScale = GetCurrentDpiScale();
                     int resetW;
                     int resetH;
                     if (!string.IsNullOrWhiteSpace(resetLayout))
                     {
-                        (resetW, resetH) = WindowSizePolicy.ResetSizeFor(resetLayout);
+                        (resetW, resetH) = WindowSizePolicy.ResetSizeFor(resetLayout, resetDpiScale);
                     }
                     else if (sReset.LastWindowWidth >= MIN_WINDOW_WIDTH && sReset.LastWindowHeight >= MIN_WINDOW_HEIGHT)
                     {
-                        resetW = sReset.LastWindowWidth;
-                        resetH = sReset.LastWindowHeight;
+                        if (sReset.LastWindowWidth == WindowSizePolicy.StandardWidth && sReset.LastWindowHeight == WindowSizePolicy.StandardHeight)
+                        {
+                            (resetW, resetH) = WindowSizePolicy.ResetSizeFor("standard", resetDpiScale);
+                        }
+                        else if (sReset.LastWindowWidth == WindowSizePolicy.CompactWidth && sReset.LastWindowHeight == WindowSizePolicy.CompactHeight)
+                        {
+                            (resetW, resetH) = WindowSizePolicy.ResetSizeFor("compact", resetDpiScale);
+                        }
+                        else
+                        {
+                            resetW = sReset.LastWindowWidth;
+                            resetH = sReset.LastWindowHeight;
+                        }
                     }
                     else
                     {
-                        resetW = WindowSizePolicy.StandardWidth;
-                        resetH = WindowSizePolicy.StandardHeight;
+                        (resetW, resetH) = WindowSizePolicy.ResetSizeFor("standard", resetDpiScale);
                     }
-                    if (Size != new Size(resetW, resetH))
+                    var curScreenReset = Screen.FromControl(this).WorkingArea;
+                    int minResetW = (int)Math.Round(MIN_WINDOW_WIDTH * resetDpiScale);
+                    int minResetH = (int)Math.Round(MIN_WINDOW_HEIGHT * resetDpiScale);
+                    var targetResetSize = WindowPlacement.ClampSize(new Size(resetW, resetH), curScreenReset, minResetW, minResetH);
+                    if (Size != targetResetSize)
                     {
                         _suppressResizeSave = true;
                         try
                         {
-                            Size = new Size(resetW, resetH);
+                            Size = targetResetSize;
                         }
                         finally
                         {

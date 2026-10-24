@@ -172,6 +172,49 @@ public partial class MainForm : Form
     }
 
     [StructLayout(LayoutKind.Sequential)]
+    private struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
+
+    [DllImport("shcore.dll")]
+    private static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
+
+    private const uint MONITOR_DEFAULTTONEAREST = 2;
+
+    internal int GetDpiForPoint(Point pt)
+    {
+        try
+        {
+            var p = new POINT { x = pt.X, y = pt.Y };
+            IntPtr hMon = MonitorFromPoint(p, MONITOR_DEFAULTTONEAREST);
+            if (hMon != IntPtr.Zero && GetDpiForMonitor(hMon, 0 /* MDT_EFFECTIVE_DPI */, out uint dpiX, out _) == 0)
+            {
+                return (int)dpiX;
+            }
+        }
+        catch { }
+        return DeviceDpi > 0 ? DeviceDpi : 96;
+    }
+
+    internal float GetDpiScaleForPoint(Point pt)
+    {
+        int dpi = GetDpiForPoint(pt);
+        return dpi > 0 ? (float)dpi / 96f : 1.0f;
+    }
+
+    internal float GetCurrentDpiScale()
+    {
+        return DeviceDpi > 0 ? (float)DeviceDpi / 96f : 1.0f;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     private struct MINMAXINFO
     {
         public POINT ptReserved;
@@ -534,12 +577,14 @@ public partial class MainForm : Form
         // so a cold start already sits at the active preset's dimensions (mirrored from the
         // frontend) before its first paint — no reveal-then-resize race.
         var startupArea = Screen.PrimaryScreen?.WorkingArea ?? new Rectangle(0, 0, 1920, 1080);
+        float startDpiScale = GetCurrentDpiScale();
         var (startW, startH) = WindowSizePolicy.Resolve(
             settings.LayoutPreset,
             settings.StandardWidth, settings.StandardHeight,
             settings.CompactWidth, settings.CompactHeight,
             settings.LastWindowWidth, settings.LastWindowHeight,
-            startupArea, MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT);
+            startupArea, MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT,
+            startDpiScale);
         Width = startW;
         Height = startH;
         ShowInTaskbar = settings.ShowTaskbar;
@@ -807,8 +852,9 @@ public partial class MainForm : Form
             try
             {
                 var mmi = (MINMAXINFO)Marshal.PtrToStructure(m.LParam, typeof(MINMAXINFO))!;
-                mmi.ptMinTrackSize.x = MIN_WINDOW_WIDTH;
-                mmi.ptMinTrackSize.y = MIN_WINDOW_HEIGHT;
+                float curDpiScale = GetCurrentDpiScale();
+                mmi.ptMinTrackSize.x = (int)Math.Round(MIN_WINDOW_WIDTH * curDpiScale);
+                mmi.ptMinTrackSize.y = (int)Math.Round(MIN_WINDOW_HEIGHT * curDpiScale);
                 Marshal.StructureToPtr(mmi, m.LParam, true);
             }
             catch { }
@@ -853,9 +899,28 @@ public partial class MainForm : Form
         {
             ShowWindow();
         }
-        else if (m.Msg == 0x007E /* WM_DISPLAYCHANGE */ || m.Msg == 0x02E0 /* WM_DPICHANGED */)
+        else if (m.Msg == 0x02E0 /* WM_DPICHANGED */)
         {
-            EnsureOnScreen();
+            _suppressResizeSave = true;
+            try
+            {
+                if (m.LParam != IntPtr.Zero)
+                {
+                    var suggested = Marshal.PtrToStructure<RECT>(m.LParam);
+                    SetBounds(suggested.Left, suggested.Top,
+                              suggested.Right - suggested.Left,
+                              suggested.Bottom - suggested.Top,
+                              BoundsSpecified.All);
+                }
+                base.WndProc(ref m);
+                EnsureOnScreen();
+            }
+            catch { }
+            finally
+            {
+                _suppressResizeSave = false;
+            }
+
             // H6: nudge layout so the Dock.Fill WebView2 re-evaluates scale after DPI/RDP changes
             try
             {
@@ -879,6 +944,12 @@ public partial class MainForm : Form
                 }
             }
             catch { }
+            return;
+        }
+        else if (m.Msg == 0x007E /* WM_DISPLAYCHANGE */)
+        {
+            base.WndProc(ref m);
+            EnsureOnScreen();
         }
         else if (m.Msg == 0x0011 /* WM_QUERYENDSESSION */ || m.Msg == 0x0016 /* WM_ENDSESSION */)
         {
@@ -1030,12 +1101,14 @@ public partial class MainForm : Form
             // (LastWindow* mirror) instead of hard-resetting to 960x720. This is what kills
             // the show-then-shrink flicker: the OS window is composited at the correct bounds
             // on its very first frame, with no onWindowShow round-trip and no morph.
+            float showDpiScale = GetDpiScaleForPoint(cursor);
             var (showW, showH) = WindowSizePolicy.Resolve(
                 settings.LayoutPreset,
                 settings.StandardWidth, settings.StandardHeight,
                 settings.CompactWidth, settings.CompactHeight,
                 settings.LastWindowWidth, settings.LastWindowHeight,
-                screen, MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT);
+                screen, MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT,
+                showDpiScale);
             if (Width != showW || Height != showH)
             {
                 _suppressResizeSave = true;

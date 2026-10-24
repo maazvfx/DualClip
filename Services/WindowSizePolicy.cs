@@ -46,6 +46,25 @@ public static class WindowSizePolicy
     public const int StandardHeight = 730;
 
     /// <summary>
+    /// Converts a logical pixel dimension to physical device pixels based on the given DPI scale.
+    /// Clamps dpiScale to a minimum of 0.5f to guard against degenerate values.
+    /// </summary>
+    public static int ToPhysicalPixels(int logicalPixels, float dpiScale)
+    {
+        if (dpiScale <= 0f) dpiScale = 1.0f;
+        return (int)Math.Round(logicalPixels * dpiScale, MidpointRounding.AwayFromZero);
+    }
+
+    /// <summary>
+    /// Converts a physical device pixel dimension to logical CSS pixels based on the given DPI scale.
+    /// </summary>
+    public static int ToLogicalPixels(int physicalPixels, float dpiScale)
+    {
+        if (dpiScale <= 0f) dpiScale = 1.0f;
+        return (int)Math.Round(physicalPixels / dpiScale, MidpointRounding.AwayFromZero);
+    }
+
+    /// <summary>
     /// Returns the base size of the given layout mode for "Reset Window Size".
     /// Only Compact and Standard exist (Large mode removed); legacy and
     /// unknown layouts fall back to Standard. Pure: no side effects.
@@ -58,6 +77,68 @@ public static class WindowSizePolicy
             "compact" => (CompactWidth, CompactHeight),
             _ => (StandardWidth, StandardHeight),
         };
+    }
+
+    /// <summary>
+    /// Returns the scaled base size (in physical pixels) of the given layout mode for "Reset Window Size".
+    /// </summary>
+    public static (int Width, int Height) ResetSizeFor(string? layout, float dpiScale)
+    {
+        var (w, h) = ResetSizeFor(layout);
+        return (ToPhysicalPixels(w, dpiScale), ToPhysicalPixels(h, dpiScale));
+    }
+
+    /// <summary>
+    /// Resolves the bounds a summon should restore, aware of the active layout preset and display DPI scale.
+    /// Base presets (StandardWidth/Height, CompactWidth/Height) are scaled by dpiScale so the physical
+    /// window matches the intended logical design size. Pure: no WinForms, no side effects.
+    /// </summary>
+    public static (int Width, int Height) Resolve(
+        string? layoutPreset,
+        int standardWidth,
+        int standardHeight,
+        int compactWidth,
+        int compactHeight,
+        int lastWindowWidth,
+        int lastWindowHeight,
+        Rectangle workingArea,
+        int minWidth,
+        int minHeight,
+        float dpiScale)
+    {
+        if (dpiScale <= 0f) dpiScale = 1.0f;
+        int scaledBaseStdW = ToPhysicalPixels(StandardWidth, dpiScale);
+        int scaledBaseStdH = ToPhysicalPixels(StandardHeight, dpiScale);
+        int scaledBaseCmpW = ToPhysicalPixels(CompactWidth, dpiScale);
+        int scaledBaseCmpH = ToPhysicalPixels(CompactHeight, dpiScale);
+        int scaledMinW = ToPhysicalPixels(minWidth, dpiScale);
+        int scaledMinH = ToPhysicalPixels(minHeight, dpiScale);
+
+        bool isCompact = string.Equals(layoutPreset, "compact", StringComparison.OrdinalIgnoreCase);
+        int w, h;
+        if (isCompact)
+        {
+            int resolvedCompactW = (compactWidth == CompactWidth) ? scaledBaseCmpW : compactWidth;
+            int resolvedCompactH = (compactHeight == CompactHeight) ? scaledBaseCmpH : compactHeight;
+            int resolvedLastW = (lastWindowWidth == CompactWidth) ? scaledBaseCmpW : lastWindowWidth;
+            int resolvedLastH = (lastWindowHeight == CompactHeight) ? scaledBaseCmpH : lastWindowHeight;
+
+            w = resolvedCompactW >= scaledMinW ? resolvedCompactW : (resolvedLastW >= scaledMinW && resolvedLastW <= scaledBaseCmpW * 2 ? resolvedLastW : scaledBaseCmpW);
+            h = resolvedCompactH >= scaledMinH ? resolvedCompactH : (resolvedLastH >= scaledMinH && resolvedLastH <= scaledBaseCmpH * 2 ? resolvedLastH : scaledBaseCmpH);
+        }
+        else
+        {
+            int resolvedStdW = (standardWidth == StandardWidth) ? scaledBaseStdW : standardWidth;
+            int resolvedStdH = (standardHeight == StandardHeight) ? scaledBaseStdH : standardHeight;
+            int resolvedLastW = (lastWindowWidth == StandardWidth) ? scaledBaseStdW : lastWindowWidth;
+            int resolvedLastH = (lastWindowHeight == StandardHeight) ? scaledBaseStdH : lastWindowHeight;
+
+            w = resolvedStdW >= scaledMinW ? resolvedStdW : (resolvedLastW >= scaledMinW ? resolvedLastW : scaledBaseStdW);
+            h = resolvedStdH >= scaledMinH ? resolvedStdH : (resolvedLastH >= scaledMinH ? resolvedLastH : scaledBaseStdH);
+        }
+
+        var clamped = WindowPlacement.ClampSize(new Size(w, h), workingArea, scaledMinW, scaledMinH);
+        return (clamped.Width, clamped.Height);
     }
 
     /// <summary>
@@ -75,21 +156,54 @@ public static class WindowSizePolicy
         Rectangle workingArea,
         int minWidth,
         int minHeight)
+        => Resolve(layoutPreset, standardWidth, standardHeight, compactWidth, compactHeight,
+                   lastWindowWidth, lastWindowHeight, workingArea, minWidth, minHeight, 1.0f);
+
+    /// <summary>
+    /// Resolves the bounds a summon should restore. Pure: no WinForms, no side effects.
+    /// </summary>
+    public static (int Width, int Height) Resolve(
+        bool rememberWindowSize,
+        int rememberedWidth,
+        int rememberedHeight,
+        int lastWindowWidth,
+        int lastWindowHeight,
+        Rectangle workingArea,
+        int minWidth,
+        int minHeight,
+        float dpiScale)
     {
-        bool isCompact = string.Equals(layoutPreset, "compact", StringComparison.OrdinalIgnoreCase);
-        int w, h;
-        if (isCompact)
+        if (dpiScale <= 0f) dpiScale = 1.0f;
+        int scaledDefaultW = ToPhysicalPixels(DefaultWidth, dpiScale);
+        int scaledDefaultH = ToPhysicalPixels(DefaultHeight, dpiScale);
+        int scaledMinW = ToPhysicalPixels(minWidth, dpiScale);
+        int scaledMinH = ToPhysicalPixels(minHeight, dpiScale);
+
+        int resolvedRemW = (rememberedWidth == DefaultWidth) ? scaledDefaultW : rememberedWidth;
+        int resolvedRemH = (rememberedHeight == DefaultHeight) ? scaledDefaultH : rememberedHeight;
+        int resolvedLastW = (lastWindowWidth == DefaultWidth) ? scaledDefaultW : lastWindowWidth;
+        int resolvedLastH = (lastWindowHeight == DefaultHeight) ? scaledDefaultH : lastWindowHeight;
+
+        int w = scaledDefaultW;
+        int h = scaledDefaultH;
+
+        if (rememberWindowSize && resolvedRemW >= scaledMinW && resolvedRemH >= scaledMinH)
         {
-            w = compactWidth >= minWidth ? compactWidth : (lastWindowWidth >= minWidth && lastWindowWidth <= CompactWidth * 2 ? lastWindowWidth : CompactWidth);
-            h = compactHeight >= minHeight ? compactHeight : (lastWindowHeight >= minHeight && lastWindowHeight <= CompactHeight * 2 ? lastWindowHeight : CompactHeight);
+            w = resolvedRemW;
+            h = resolvedRemH;
         }
-        else
+        else if (resolvedLastW >= scaledMinW && resolvedLastH >= scaledMinH)
         {
-            w = standardWidth >= minWidth ? standardWidth : (lastWindowWidth >= minWidth ? lastWindowWidth : StandardWidth);
-            h = standardHeight >= minHeight ? standardHeight : (lastWindowHeight >= minHeight ? lastWindowHeight : StandardHeight);
+            w = resolvedLastW;
+            h = resolvedLastH;
+        }
+        else if (resolvedRemW >= scaledMinW && resolvedRemH >= scaledMinH)
+        {
+            w = resolvedRemW;
+            h = resolvedRemH;
         }
 
-        var clamped = WindowPlacement.ClampSize(new Size(w, h), workingArea, minWidth, minHeight);
+        var clamped = WindowPlacement.ClampSize(new Size(w, h), workingArea, scaledMinW, scaledMinH);
         return (clamped.Width, clamped.Height);
     }
 
@@ -105,27 +219,6 @@ public static class WindowSizePolicy
         Rectangle workingArea,
         int minWidth,
         int minHeight)
-    {
-        int w = DefaultWidth;
-        int h = DefaultHeight;
-
-        if (rememberWindowSize && rememberedWidth >= minWidth && rememberedHeight >= minHeight)
-        {
-            w = rememberedWidth;
-            h = rememberedHeight;
-        }
-        else if (lastWindowWidth >= minWidth && lastWindowHeight >= minHeight)
-        {
-            w = lastWindowWidth;
-            h = lastWindowHeight;
-        }
-        else if (rememberedWidth >= minWidth && rememberedHeight >= minHeight)
-        {
-            w = rememberedWidth;
-            h = rememberedHeight;
-        }
-
-        var clamped = WindowPlacement.ClampSize(new Size(w, h), workingArea, minWidth, minHeight);
-        return (clamped.Width, clamped.Height);
-    }
+        => Resolve(rememberWindowSize, rememberedWidth, rememberedHeight, lastWindowWidth, lastWindowHeight,
+                   workingArea, minWidth, minHeight, 1.0f);
 }
