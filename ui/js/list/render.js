@@ -856,10 +856,11 @@ function renderList(opts) {
   if (vSpacer) { vSpacer.style.width = '1px'; vSpacer.style.position = 'relative'; vSpacer.style.pointerEvents = 'none'; vSpacer.style.opacity = '0'; vSpacer.style.margin = '0'; vSpacer.style.padding = '0'; }
   if (vPool) { vPool.style.position = 'absolute'; vPool.style.top = '0'; vPool.style.left = '0'; vPool.style.right = '0'; vPool.style.width = '100%'; vPool.style.pointerEvents = 'auto'; vPool.style.willChange = 'transform'; }
 
+  const searchInput = document.getElementById('searchInput');
+  const query = searchInput ? searchInput.value.trim() : '';
+  const isSearching = Boolean(query);
+
   if (clips.length === 0) {
-    const searchInput = document.getElementById('searchInput');
-    const query = searchInput ? searchInput.value.trim() : '';
-    const isSearching = Boolean(query);
     const oldTotalForEmpty = lastVirtualTotalH;
     if (oldTotalForEmpty > 0) {
       container.scrollTop = 0;
@@ -885,7 +886,7 @@ function renderList(opts) {
   currentFlatItems = [];
   if (typeof syncActiveCollapsedGroups === 'function') syncActiveCollapsedGroups();
 
-  if (groupingMode !== 'none' && currentCollection !== 'most_used') {
+  if (!isSearching && groupingMode !== 'none' && currentCollection !== 'most_used') {
     const groups = {};
 
     if (groupingMode === 'date' || groupingMode === 'time') {
@@ -1013,20 +1014,28 @@ function renderList(opts) {
     }
   } else {
     const visibleOriginalIndices = new Set(visibleClipItems.map(it => it.originalIdx));
-    const survivingIndices = Array.from(selectedIndices).filter(idx => visibleOriginalIndices.has(idx));
-    if (survivingIndices.length > 0) {
-      selectedIndices.clear();
-      survivingIndices.forEach(idx => selectedIndices.add(idx));
-      if (!visibleOriginalIndices.has(selectedIndex)) {
-        selectedIndex = survivingIndices[0];
-        lastAnchorIndex = selectedIndex;
-      }
-    } else {
+    if (isSearching && (selectedIndex < 0 || !visibleOriginalIndices.has(selectedIndex) || selectedIndices.size === 0)) {
       const firstVisible = visibleClipItems[0].originalIdx;
       selectedIndex = firstVisible;
       selectedIndices.clear();
       selectedIndices.add(selectedIndex);
       lastAnchorIndex = selectedIndex;
+    } else {
+      const survivingIndices = Array.from(selectedIndices).filter(idx => visibleOriginalIndices.has(idx));
+      if (survivingIndices.length > 0) {
+        selectedIndices.clear();
+        survivingIndices.forEach(idx => selectedIndices.add(idx));
+        if (!visibleOriginalIndices.has(selectedIndex)) {
+          selectedIndex = survivingIndices[0];
+          lastAnchorIndex = selectedIndex;
+        }
+      } else {
+        const firstVisible = visibleClipItems[0].originalIdx;
+        selectedIndex = firstVisible;
+        selectedIndices.clear();
+        selectedIndices.add(selectedIndex);
+        lastAnchorIndex = selectedIndex;
+      }
     }
     if (typeof syncSelectedIds === 'function') syncSelectedIds();
   }
