@@ -1,11 +1,11 @@
-; DualClip v1.0.0 Inno Setup script — Next-Next-Finish simplicity.
+; DualClip v1.0.1 Inno Setup script — Next-Next-Finish simplicity.
 ; Per-user install (no UAC prompts), self-contained payload (no .NET install needed).
 ; Build payload first: dotnet publish DualClip.csproj -c Release -r win-x64 --self-contained true -o publish\win-x64
 ; Compile installer: iscc installer\DualClip.iss
 ; Source layout note: ONLY publish output is packaged (never the repo root).
 
 #define MyAppName "DualClip"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.1"
 #define MyAppPublisher "DualClip"
 #define MyAppExeName "DualClip.exe"
 
@@ -18,7 +18,7 @@ DefaultDirName={localappdata}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 PrivilegesRequired=lowest
 OutputDir=..\dist
-OutputBaseFilename=DualClip-Setup-1.0.0
+OutputBaseFilename=DualClip-Setup-1.0.1
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
