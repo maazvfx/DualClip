@@ -917,6 +917,17 @@
       pointer-events: auto;
     }
 
+    /* Collection name badge: show always at rest (not hidden behind hover) */
+    .row-collection-badge,
+    .actions-right .row-collection-badge {
+      display: inline-flex !important;
+      align-items: center;
+      visibility: visible !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+      flex-shrink: 0;
+    }
+
     /* At rest (not hovered, not selected, not focused): inactive buttons are hidden, while active buttons stay visible */
     .clip-row:not(:hover):not(.selected):not(:focus-within) .favorite-btn:not(.favorite):not(.active),
     .clip-row:not(:hover):not(.selected):not(:focus-within) .pin-btn:not(.pinned):not(.active) {

@@ -1828,11 +1828,11 @@ function createRowElement(clip, idx, forcedHeight, visualRowIdx) {
     ? `<span class="row-use-badge" title="Pasted ${clip.use_count} times">×${clip.use_count}</span>` 
     : '';
   const isActivelySearching = _cachedIsActivelySearching;
-  const shouldShowBadge = (clip.collection && clip.collection !== 'all' && clip.collection !== 'favorites' && clip.collection !== 'pins') && (isActivelySearching || groupingMode === 'app');
+  const shouldShowBadge = Boolean(clip.collection && clip.collection !== 'all' && clip.collection !== 'favorites' && clip.collection !== 'pins');
   let collectionBadgeHtml = '';
   if (shouldShowBadge) {
     const badgeColName = (typeof resolveCollectionDisplayName === 'function') ? resolveCollectionDisplayName(clip.collection) : clip.collection;
-    collectionBadgeHtml = `<span class="row-collection-badge" title="Collection: ${escapeHtml(badgeColName)}" style="background: var(--tag-bg); border: 1px solid var(--tag-border); color: var(--tag-text); font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 10px; margin-right: 6px;">${escapeHtml(badgeColName)}</span>`;
+    collectionBadgeHtml = `<span class="row-collection-badge" title="Collection: ${escapeHtml(badgeColName)}" style="background: var(--tag-bg); border: 1px solid var(--tag-border); color: var(--tag-text); font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 10px; margin-right: 6px; visibility: visible;">${escapeHtml(badgeColName)}</span>`;
   }
 
   const rawApp = clip.src_process || (clip.is_image ? 'Image' : 'DualClip');

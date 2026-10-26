@@ -95,6 +95,15 @@ public class UiStaticInvariantTests
 
     [Fact]
     [Trait("Category", "Core")]
+    public void CollectionNameBadge_AlwaysVisibleByCss()
+    {
+        string clipList = ReadRepoFile("ui", "css", "clip-list.css");
+        Assert.Contains(".row-collection-badge", clipList);
+        Assert.Contains("visibility: visible", clipList);
+    }
+
+    [Fact]
+    [Trait("Category", "Core")]
     public void CompactMenu_HasCompactScalingRules()
     {
         string css = ReadRepoFile("ui", "css", "collections-bar.css");
