@@ -101,7 +101,7 @@ Get-ChildItem -Path $portableStaging | Where-Object { $_.Name -ne "DualClip.exe"
     $_.Attributes = $_.Attributes -bor [System.IO.FileAttributes]::Hidden
 }
 
-$zipPath = Join-Path $distDir "DualClip-Portable-1.0.1.zip"
+$zipPath = Join-Path $distDir "DualClip-Portable-1.0.2.zip"
 if (Test-Path $zipPath) { Remove-Item -Force $zipPath }
 
 # Build ZIP preserving DOS Hidden attribute on non-EXE root files
@@ -134,8 +134,8 @@ if ($ReleaseOutDir -and $ReleaseOutDir.Trim() -ne "") {
     Write-Host "=== 7. Copying Production Packages to $ReleaseOutDir ===" -ForegroundColor Cyan
     if (-not (Test-Path $ReleaseOutDir)) { New-Item -ItemType Directory -Path $ReleaseOutDir -Force | Out-Null }
     $releaseFiles = @(
-        (Join-Path $distDir "DualClip-Setup-1.0.1.exe"),
-        (Join-Path $distDir "DualClip-Portable-1.0.1.zip")
+        (Join-Path $distDir "DualClip-Setup-1.0.2.exe"),
+        (Join-Path $distDir "DualClip-Portable-1.0.2.zip")
     )
     foreach ($releaseFile in $releaseFiles) {
         if (-not (Test-Path $releaseFile)) { Write-Error "Expected release artifact missing: $releaseFile" }

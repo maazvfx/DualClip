@@ -1828,7 +1828,25 @@ function createRowElement(clip, idx, forcedHeight, visualRowIdx) {
     ? `<span class="row-use-badge" title="Pasted ${clip.use_count} times">×${clip.use_count}</span>` 
     : '';
   const isActivelySearching = _cachedIsActivelySearching;
-  const shouldShowBadge = Boolean(clip.collection && clip.collection !== 'all' && clip.collection !== 'favorites' && clip.collection !== 'pins');
+  const curCol = (typeof currentCollection !== 'undefined' && currentCollection) ? String(currentCollection).toLowerCase() : 'all';
+  const isCustomCollectionView = Boolean(
+    curCol &&
+    curCol !== 'all' &&
+    curCol !== 'pins' &&
+    curCol !== 'most_used' &&
+    curCol !== 'favorites' &&
+    curCol !== 'all_total' &&
+    curCol !== 'all_unorganized' &&
+    curCol !== 'transcriptions' &&
+    curCol !== 'voice'
+  );
+  const shouldShowBadge = Boolean(
+    clip.collection &&
+    clip.collection !== 'all' &&
+    clip.collection !== 'favorites' &&
+    clip.collection !== 'pins' &&
+    (isActivelySearching || isCustomCollectionView)
+  );
   let collectionBadgeHtml = '';
   if (shouldShowBadge) {
     const badgeColName = (typeof resolveCollectionDisplayName === 'function') ? resolveCollectionDisplayName(clip.collection) : clip.collection;
